@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Connexion admin | Bal 2026</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <strong>Bal 2026</strong>
+        <span>Connexion administrateur</span>
+      </div>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="/index.html">Inscription</a>
+        <a href="/login.html">Connexion</a>
+        <a href="/admin.html">Admin</a>
+        <a href="/scan.html">Scan</a>
+      </nav>
+    </header>
+
+    <main class="shell">
+      <section class="panel">
+        <h1>Connexion admin</h1>
+        <form id="loginForm">
+          <div class="field">
+            <label for="username">Nom utilisateur</label>
+            <input id="username" name="username" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label for="password">Mot de passe</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required minlength="8">
+          </div>
+          <button class="primary" type="submit">Se connecter</button>
+          <div id="loginMessage" class="message" hidden></div>
+        </form>
+      </section>
+    </main>
+
+    <script src="/assets/app.js"></script>
+    <script>
+      const form = document.querySelector('#loginForm');
+      const message = document.querySelector('#loginMessage');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submitButton = form.querySelector('button');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Connexion...';
+
+        try {
+          const data = Object.fromEntries(new FormData(form).entries());
+          await window.ticketApi.login(data);
+          window.location.href = '/admin.html';
+        } catch (error) {
+          window.ticketUi.showMessage(message, error.message, 'error');
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Se connecter';
+        }
+      });
+    </script>
+  </body>
+</html>

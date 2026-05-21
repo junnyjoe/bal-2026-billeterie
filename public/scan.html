@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scan | Bal 2026</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <strong>Bal 2026</strong>
+        <span>Controle des entrees</span>
+      </div>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="/index.html">Inscription</a>
+        <a href="/login.html">Connexion</a>
+        <a href="/admin.html">Admin</a>
+        <a href="/scan.html">Scan</a>
+      </nav>
+    </header>
+
+    <main class="shell grid">
+      <section class="panel">
+        <div class="actions" style="justify-content: space-between; margin-top: 0;">
+          <h1>Valider une entree</h1>
+          <button id="logoutButton" type="button">Deconnexion</button>
+        </div>
+
+        <form id="scanForm">
+          <div class="field">
+            <label for="code">Code ticket ou URL QR</label>
+            <input id="code" name="code" required autocomplete="off">
+          </div>
+          <button class="primary" type="submit">Valider</button>
+        </form>
+        <div class="actions">
+          <button id="startCamera" type="button">Scanner avec camera</button>
+          <button id="stopCamera" type="button" hidden>Arreter camera</button>
+        </div>
+        <div id="reader"></div>
+        <div id="scanMessage" class="message" hidden></div>
+      </section>
+
+      <section id="scanResult" aria-live="polite"></section>
+    </main>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
+    <script src="/assets/app.js"></script>
+    <script>
+      const scanForm = document.querySelector('#scanForm');
+      const codeInput = document.querySelector('#code');
+      const message = document.querySelector('#scanMessage');
+      const resultView = document.querySelector('#scanResult');
+      const startCamera = document.querySelector('#startCamera');
+      const stopCamera = document.querySelector('#stopCamera');
+      const logoutButton = document.querySelector('#logoutButton');
+      let scanner = null;
+
+      logoutButton.addEventListener('click', async () => {
+        await window.ticketApi.logout();
+        window.location.href = '/login.html';
+      });
+
+      async function validateCode(code) {
+        try {
+          const result = await window.ticketApi.scan(code);
+          window.ticketUi.showMessage(message, result.message);
+          window.ticketUi.renderTicket(result.ticket, resultView);
+        } catch (error) {
+          if (error.payload && error.payload.message === 'Acces admin refuse.') {
+            window.location.href = '/login.html';
+            return;
+          }
+
+          window.ticketUi.showMessage(message, error.message, 'error');
+          if (error.payload && error.payload.ticket) {
+            window.ticketUi.renderTicket(error.payload.ticket, resultView);
+          }
+        }
+      }
+
+      scanForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await validateCode(codeInput.value);
+      });
+
+      startCamera.addEventListener('click', async () => {
+        if (!window.Html5Qrcode) {
+          window.ticketUi.showMessage(message, 'Scanner camera indisponible. Verifiez la connexion internet ou saisissez le code manuellement.', 'error');
+          return;
+        }
+
+        scanner = new Html5Qrcode('reader');
+        startCamera.hidden = true;
+        stopCamera.hidden = false;
+
+        try {
+          await scanner.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 240, height: 240 } },
+            async (decodedText) => {
+              codeInput.value = decodedText;
+              await scanner.stop();
+              startCamera.hidden = false;
+              stopCamera.hidden = true;
+              await validateCode(decodedText);
+            }
+          );
+        } catch (error) {
+          window.ticketUi.showMessage(message, 'Impossible de demarrer la camera. Sur telephone, ouvrez cette page en HTTPS ou utilisez localhost pendant les tests.', 'error');
+          startCamera.hidden = false;
+          stopCamera.hidden = true;
+        }
+      });
+
+      stopCamera.addEventListener('click', async () => {
+        if (scanner) {
+          await scanner.stop();
+        }
+
+        startCamera.hidden = false;
+        stopCamera.hidden = true;
+      });
+
+      window.ticketApi.getSession().catch(() => {
+        window.location.href = '/login.html';
+      });
+    </script>
+  </body>
+</html>

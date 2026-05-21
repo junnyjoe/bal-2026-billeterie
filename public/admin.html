@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin | Bal 2026</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <strong>Bal 2026</strong>
+        <span>Liste des participants</span>
+      </div>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="/index.html">Inscription</a>
+        <a href="/login.html">Connexion</a>
+        <a href="/admin.html">Admin</a>
+        <a href="/scan.html">Scan</a>
+      </nav>
+    </header>
+
+    <main class="shell">
+      <section class="panel">
+        <div class="actions" style="justify-content: space-between; margin-top: 0;">
+          <h1>Tickets</h1>
+          <div class="actions" style="margin-top: 0;">
+            <button id="refreshButton" type="button">Actualiser</button>
+            <button id="logoutButton" type="button">Deconnexion</button>
+          </div>
+        </div>
+
+        <!-- ── Statistiques ── -->
+        <div id="statsGrid" class="stats-grid stats-skeleton" aria-label="Statistiques des tickets">
+          <div class="stat-card stat-card--total">
+            <span class="stat-card__icon" aria-hidden="true">🎟️</span>
+            <span id="statTotal" class="stat-card__value">…</span>
+            <span class="stat-card__label">Total tickets</span>
+          </div>
+          <div class="stat-card stat-card--actifs">
+            <span class="stat-card__icon" aria-hidden="true">✅</span>
+            <span id="statActifs" class="stat-card__value">…</span>
+            <span class="stat-card__label">Actifs</span>
+          </div>
+          <div class="stat-card stat-card--utilises">
+            <span class="stat-card__icon" aria-hidden="true">🚪</span>
+            <span id="statUtilises" class="stat-card__value">…</span>
+            <span class="stat-card__label">Utilisés</span>
+          </div>
+          <div class="stat-card stat-card--annules">
+            <span class="stat-card__icon" aria-hidden="true">❌</span>
+            <span id="statAnnules" class="stat-card__value">…</span>
+            <span class="stat-card__label">Annulés</span>
+          </div>
+          <div class="stat-card stat-card--jour">
+            <span class="stat-card__icon" aria-hidden="true">📅</span>
+            <span id="statJour" class="stat-card__value">…</span>
+            <span class="stat-card__label">Ventes du jour</span>
+          </div>
+        </div>
+
+        <div id="adminMessage" class="message" hidden></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nom</th>
+                <th>Telephone</th>
+                <th>Email</th>
+                <th>Code</th>
+                <th>Statut</th>
+                <th>Date</th>
+                <th>Ticket</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ticketsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="/assets/app.js"></script>
+    <script>
+      const body = document.querySelector('#ticketsBody');
+      const message = document.querySelector('#adminMessage');
+      const refreshButton = document.querySelector('#refreshButton');
+      const logoutButton = document.querySelector('#logoutButton');
+      const statsGrid = document.querySelector('#statsGrid');
+
+      logoutButton.addEventListener('click', async () => {
+        await window.ticketApi.logout();
+        window.location.href = '/login.html';
+      });
+
+      async function loadStats() {
+        statsGrid.classList.add('stats-skeleton');
+        try {
+          const result = await window.ticketApi.getStats();
+          const s = result.stats;
+          document.querySelector('#statTotal').textContent    = s.total;
+          document.querySelector('#statActifs').textContent   = s.actifs;
+          document.querySelector('#statUtilises').textContent = s.utilises;
+          document.querySelector('#statAnnules').textContent  = s.annules;
+          document.querySelector('#statJour').textContent     = s.ventesJour;
+          statsGrid.classList.remove('stats-skeleton');
+        } catch {
+          // Silencieux : les stats ne bloquent pas le reste du dashboard
+        }
+      }
+
+      async function loadTickets() {
+        refreshButton.disabled = true;
+
+        try {
+          const result = await window.ticketApi.getTickets();
+          body.innerHTML = result.tickets.map((ticket) => `
+            <tr data-code="${window.ticketUi.escapeHtml(ticket.ticketCode)}">
+              <td>${window.ticketUi.escapeHtml(ticket.nom)}</td>
+              <td>${window.ticketUi.escapeHtml(ticket.telephone)}</td>
+              <td>${window.ticketUi.escapeHtml(ticket.email || '-')}</td>
+              <td><span class="ticket-code">${window.ticketUi.escapeHtml(ticket.ticketCode)}</span></td>
+              <td><span class="badge ${ticket.statut}">${ticket.statut}</span></td>
+              <td>${window.ticketUi.formatDate(ticket.dateAchat)}</td>
+              <td><a class="button" href="/ticket.html?code=${encodeURIComponent(ticket.ticketCode)}">Voir</a></td>
+              <td>
+                <button
+                  type="button"
+                  data-action="edit"
+                  data-ticket='${JSON.stringify(ticket).replace(/'/g, '&#039;')}'
+                >
+                  Modifier
+                </button>
+              </td>
+            </tr>
+          `).join('');
+
+          if (result.tickets.length === 0) {
+            body.innerHTML = '<tr><td colspan="8">Aucun ticket pour le moment.</td></tr>';
+          }
+        } catch (error) {
+          if (error.payload && error.payload.message === 'Acces admin refuse.') {
+            window.location.href = '/login.html';
+            return;
+          }
+
+          window.ticketUi.showMessage(message, error.message, 'error');
+        } finally {
+          refreshButton.disabled = false;
+        }
+      }
+
+      body.addEventListener('click', (event) => {
+        const editButton = event.target.closest('[data-action="edit"]');
+        const cancelButton = event.target.closest('[data-action="cancel"]');
+
+        if (editButton) {
+          const ticket = JSON.parse(editButton.dataset.ticket);
+          showEditRow(ticket);
+        }
+
+        if (cancelButton) {
+          loadTickets();
+        }
+      });
+
+      body.addEventListener('submit', async (event) => {
+        if (!event.target.matches('[data-edit-form]')) {
+          return;
+        }
+
+        event.preventDefault();
+        const form = event.target;
+        const code = form.dataset.code;
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+
+        try {
+          const data = Object.fromEntries(new FormData(form).entries());
+          const result = await window.ticketApi.updateTicket(code, data);
+          window.ticketUi.showMessage(message, result.message);
+          await loadTickets();
+        } catch (error) {
+          if (error.payload && error.payload.message === 'Acces admin refuse.') {
+            window.location.href = '/login.html';
+            return;
+          }
+
+          window.ticketUi.showMessage(message, error.message, 'error');
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+
+      function showEditRow(ticket) {
+        const row = body.querySelector(`[data-code="${CSS.escape(ticket.ticketCode)}"]`);
+
+        if (!row) {
+          return;
+        }
+
+        row.innerHTML = `
+          <td colspan="8">
+            <form data-edit-form data-code="${window.ticketUi.escapeHtml(ticket.ticketCode)}">
+              <div class="edit-grid">
+                <div class="field">
+                  <label for="edit-nom">Nom</label>
+                  <input id="edit-nom" name="nom" value="${window.ticketUi.escapeHtml(ticket.nom)}" required minlength="2" maxlength="120">
+                </div>
+                <div class="field">
+                  <label for="edit-telephone">Telephone</label>
+                  <input id="edit-telephone" name="telephone" value="${window.ticketUi.escapeHtml(ticket.telephone)}" required minlength="6" maxlength="30">
+                </div>
+                <div class="field">
+                  <label for="edit-email">Email</label>
+                  <input id="edit-email" name="email" type="email" value="${window.ticketUi.escapeHtml(ticket.email || '')}">
+                </div>
+                <div class="field">
+                  <label for="edit-statut">Statut</label>
+                  <select id="edit-statut" name="statut">
+                    <option value="active" ${ticket.statut === 'active' ? 'selected' : ''}>active</option>
+                    <option value="used" ${ticket.statut === 'used' ? 'selected' : ''}>used</option>
+                  </select>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="primary" type="submit">Enregistrer</button>
+                <button type="button" data-action="cancel">Annuler</button>
+              </div>
+            </form>
+          </td>
+        `;
+      }
+
+      refreshButton.addEventListener('click', () => {
+        loadStats();
+        loadTickets();
+      });
+
+      loadStats();
+      loadTickets();
+    </script>
+  </body>
+</html>

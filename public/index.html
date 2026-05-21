@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inscription | Bal 2026</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <strong>Bal 2026</strong>
+        <span>Gestion des inscriptions et tickets</span>
+      </div>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="/index.html">Inscription</a>
+        <a href="/login.html">Connexion</a>
+        <a href="/admin.html">Admin</a>
+        <a href="/scan.html">Scan</a>
+      </nav>
+    </header>
+
+    <main class="shell grid">
+      <section class="panel">
+        <h1>Enregistrer un participant</h1>
+        <form id="registerForm">
+          <div class="field">
+            <label for="nom">Nom complet</label>
+            <input id="nom" name="nom" autocomplete="name" required minlength="2" maxlength="120">
+          </div>
+          <div class="field">
+            <label for="telephone">Telephone</label>
+            <input id="telephone" name="telephone" autocomplete="tel" required minlength="6" maxlength="30">
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email">
+          </div>
+          <button class="primary" type="submit">Generer le ticket</button>
+          <div id="formMessage" class="message" hidden></div>
+        </form>
+      </section>
+
+      <section id="ticketPreview" aria-live="polite"></section>
+    </main>
+
+    <script src="/assets/app.js"></script>
+    <script>
+      const form = document.querySelector('#registerForm');
+      const message = document.querySelector('#formMessage');
+      const preview = document.querySelector('#ticketPreview');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submitButton = form.querySelector('button');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Generation...';
+
+        try {
+          const data = Object.fromEntries(new FormData(form).entries());
+          const result = await window.ticketApi.register(data);
+
+          window.ticketUi.showMessage(message, result.message);
+          window.ticketUi.renderTicket(result.ticket, preview);
+          form.reset();
+        } catch (error) {
+          window.ticketUi.showMessage(message, error.message, 'error');
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Generer le ticket';
+        }
+      });
+    </script>
+  </body>
+</html>
