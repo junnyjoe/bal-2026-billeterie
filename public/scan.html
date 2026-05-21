@@ -3,132 +3,164 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Scan | Casino Masqué</title>
+    <title>Contrôle des entrées | Casino Masqué</title>
     <link rel="stylesheet" href="/assets/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
-        <strong>Casino Masqué</strong>
-        <span>Controle des entrees</span>
+        <strong>Casino Masqué</strong> <span>Contrôle des entrées</span>
       </div>
       <nav class="nav" aria-label="Navigation principale">
-        <a href="/index.html">Accueil</a>
-        <a href="/register.html">Inscription</a>
-        <a href="/login.html">Connexion</a>
+        <button id="logoutButton" type="button">Déconnexion</button>
       </nav>
     </header>
 
-    <main class="shell grid" style="display: none;">
-      <section class="panel">
-        <div class="actions" style="justify-content: space-between; margin-top: 0;">
-          <h1>Valider une entree</h1>
-          <button id="logoutButton" type="button">Deconnexion</button>
-        </div>
-
-        <form id="scanForm">
-          <div class="field">
-            <label for="code">Code ticket ou URL QR</label>
-            <input id="code" name="code" required autocomplete="off">
-          </div>
+    <main class="shell" id="mainContent" style="display:none;">
+      <!-- ── Section Scan ── -->
+      <section class="panel" style="margin-bottom:2rem;">
+        <h1>Valider une entrée</h1>
+        <p class="center" style="color:var(--color-primary);">Scannés cette session : <span id="sessionCounter" class="badge">0</span></p>
+        <form id="codeForm" autocomplete="off" style="display:flex;gap:0.5rem;align-items:center;">
+          <input id="codeInput" type="text" placeholder="Code ticket ou URL QR" required style="flex:1;">
           <button class="primary" type="submit">Valider</button>
         </form>
-        <div class="actions">
-          <button id="startCamera" type="button">Scanner avec camera</button>
-          <button id="stopCamera" type="button" hidden>Arreter camera</button>
+        <div style="margin-top:1rem;">
+          <button id="startCam" type="button" class="secondary">Scanner avec caméra</button>
+          <button id="stopCam" type="button" class="secondary" hidden>Arrêter caméra</button>
         </div>
-        <div id="reader"></div>
-        <div id="scanMessage" class="message" hidden></div>
+        <div id="reader" style="margin-top:1rem; width:100%; max-width:400px;"></div>
+        <div id="scanBanner" class="message" hidden style="margin-top:1rem;"></div>
       </section>
 
-      <section id="scanResult" aria-live="polite"></section>
+      <!-- ── Liste des participants ── -->
+      <section class="panel">
+        <h2>Liste des participants</h2>
+        <table>
+          <thead>
+            <tr><th>Nom</th><th>Statut</th></tr>
+          </thead>
+          <tbody id="participantsBody">
+            <tr><td colspan="2" class="center">Chargement...</td></tr>
+          </tbody>
+        </table>
+      </section>
     </main>
 
-    <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
     <script src="/assets/app.js"></script>
     <script>
-      // Auth Guard
-      window.ticketApi.getSession().then(() => {
-        document.querySelector('.shell').style.display = 'grid';
-      }).catch(() => {
-        window.location.href = '/login.html';
-      });
+      /* ────────────────────────────────────────
+         Auth Guard & Session Check
+      ──────────────────────────────────────── */
+      (function authGuard() {
+        const raw = sessionStorage.getItem('casinoSession');
+        if (!raw) { window.location.href = '/login.html'; return; }
+        try { var sess = JSON.parse(raw); if (!['admin','controleur'].includes(sess.role)) { throw new Error(); } }
+        catch { sessionStorage.removeItem('casinoSession'); window.location.href = '/login.html'; return; }
+        // verify server side session
+        window.ticketApi.getSession().then(() => {
+          document.getElementById('mainContent').style.display = 'block';
+        }).catch(() => { sessionStorage.removeItem('casinoSession'); window.location.href = '/login.html'; });
+      })();
 
-      const scanForm = document.querySelector('#scanForm');
-      const codeInput = document.querySelector('#code');
-      const message = document.querySelector('#scanMessage');
-      const resultView = document.querySelector('#scanResult');
-      const startCamera = document.querySelector('#startCamera');
-      const stopCamera = document.querySelector('#stopCamera');
-      const logoutButton = document.querySelector('#logoutButton');
-      let scanner = null;
-
-      logoutButton.addEventListener('click', async () => {
+      const logoutBtn = document.getElementById('logoutButton');
+      logoutBtn.addEventListener('click', async () => {
         await window.ticketApi.logout();
+        sessionStorage.removeItem('casinoSession');
         window.location.href = '/login.html';
       });
+
+      /* ────────────────────────────────────────
+         Scan logic
+      ──────────────────────────────────────── */
+      let sessionValidated = 0;
+      const counterEl = document.getElementById('sessionCounter');
+      const banner = document.getElementById('scanBanner');
+
+      function showBanner(type, message) {
+        banner.className = `message ${type}`;
+        banner.textContent = message;
+        banner.hidden = false;
+        setTimeout(() => { banner.hidden = true; }, 5000);
+      }
 
       async function validateCode(code) {
         try {
           const result = await window.ticketApi.scan(code);
-          window.ticketUi.showMessage(message, result.message);
-          window.ticketUi.renderTicket(result.ticket, resultView);
-        } catch (error) {
-          if (error.payload && error.payload.message === 'Acces admin refuse.') {
-            window.location.href = '/login.html';
-            return;
-          }
-
-          window.ticketUi.showMessage(message, error.message, 'error');
-          if (error.payload && error.payload.ticket) {
-            window.ticketUi.renderTicket(error.payload.ticket, resultView);
+          // success -> valid ticket
+          sessionValidated++;
+          counterEl.textContent = sessionValidated;
+          showBanner('success', `✅ VALIDE — ${result.nom}`);
+          await loadParticipants();
+        } catch (err) {
+          if (err.payload && err.payload.status === 409) {
+            showBanner('error', `⚠️ DÉJÀ UTILISÉ — Billet déjà scanné`);
+          } else if (err.payload && err.payload.status === 404) {
+            showBanner('error', `❌ INVALIDE — Code inconnu`);
+          } else {
+            showBanner('error', err.message || 'Erreur de validation');
           }
         }
       }
 
-      scanForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        await validateCode(codeInput.value);
+      // Form submit
+      document.getElementById('codeForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const code = e.target.codeInput.value.trim();
+        if (code) await validateCode(code);
+        e.target.codeInput.value = '';
       });
 
-      startCamera.addEventListener('click', async () => {
-        if (!window.Html5Qrcode) {
-          window.ticketUi.showMessage(message, 'Scanner camera indisponible. Verifiez la connexion internet ou saisissez le code manuellement.', 'error');
-          return;
-        }
+      /* ────────────────────────────────────────
+         Camera QR scanner
+      ──────────────────────────────────────── */
+      let html5QrCode = null;
+      const startBtn = document.getElementById('startCam');
+      const stopBtn = document.getElementById('stopCam');
+      const readerDiv = document.getElementById('reader');
 
-        scanner = new Html5Qrcode('reader');
-        startCamera.hidden = true;
-        stopCamera.hidden = false;
+      startBtn.addEventListener('click', () => {
+        startBtn.hidden = true;
+        stopBtn.hidden = false;
+        html5QrCode = new Html5Qrcode('reader');
+        const config = { fps: 10, qrbox: 250 };
+        html5QrCode.start({ facingMode: 'environment' }, config, decoded => {
+          validateCode(decoded);
+        }).catch(err => {
+          showBanner('error', err.message || 'Impossible de démarrer la caméra');
+          stopCamera();
+        });
+      });
 
+      function stopCamera() { if (html5QrCode) { html5QrCode.stop().catch(() => {}); html5QrCode.clear(); html5QrCode = null; } startBtn.hidden = false; stopBtn.hidden = true; }
+      stopBtn.addEventListener('click', stopCamera);
+
+      /* ────────────────────────────────────────
+         Load participants list
+      ──────────────────────────────────────── */
+      async function loadParticipants() {
+        const tbody = document.getElementById('participantsBody');
         try {
-          await scanner.start(
-            { facingMode: 'environment' },
-            { fps: 10, qrbox: { width: 240, height: 240 } },
-            async (decodedText) => {
-              codeInput.value = decodedText;
-              await scanner.stop();
-              startCamera.hidden = false;
-              stopCamera.hidden = true;
-              await validateCode(decodedText);
-            }
-          );
-        } catch (error) {
-          window.ticketUi.showMessage(message, 'Impossible de demarrer la camera. Sur telephone, ouvrez cette page en HTTPS ou utilisez localhost pendant les tests.', 'error');
-          startCamera.hidden = false;
-          stopCamera.hidden = true;
+          const data = await window.ticketApi.getTickets();
+          const tickets = data.tickets || [];
+          if (tickets.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" class="center">Aucun participant pour le moment.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = tickets.map(t => `
+            <tr>
+              <td>${window.ticketUi.escapeHtml(t.nom)}</td>
+              <td class="badge ${t.statut === 'actif' ? 'active' : 'used'}">${window.ticketUi.escapeHtml(t.statut)}</td>
+            </tr>`).join('');
+        } catch (e) {
+          tbody.innerHTML = '<tr><td colspan="2" class="center error">Erreur lors du chargement.</td></tr>';
         }
-      });
+      }
 
-      stopCamera.addEventListener('click', async () => {
-        if (scanner) {
-          await scanner.stop();
-        }
-
-        startCamera.hidden = false;
-        stopCamera.hidden = true;
-      });
-
+      // Initial load
+      loadParticipants();
     </script>
   </body>
 </html>

@@ -26,14 +26,14 @@ const authService = require('../../services/authService');
 
 describe('authService.login', () => {
   test('should return a valid JWT on correct credentials', async () => {
-    const token = await authService.login({
+    const result = await authService.login({
       username: TEST_USERNAME,
       password: TEST_PASSWORD
     });
 
-    expect(typeof token).toBe('string');
+    expect(typeof result.token).toBe('string');
 
-    const decoded = jwt.verify(token, TEST_JWT_SECRET);
+    const decoded = jwt.verify(result.token, TEST_JWT_SECRET);
     expect(decoded.username).toBe(TEST_USERNAME);
     expect(decoded.role).toBe('admin');
   });

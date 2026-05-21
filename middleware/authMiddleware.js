@@ -1,5 +1,17 @@
 const authService = require('../services/authService');
 
+function requireAuth(req, res, next) {
+  const token = req.cookies ? req.cookies[authService.cookieName] : null;
+  const session = authService.verifySession(token);
+
+  if (!session) {
+    return res.status(401).json({ message: 'Acces admin refuse.' });
+  }
+
+  req.admin = session;
+  return next();
+}
+
 function requireAdmin(req, res, next) {
   const token = req.cookies ? req.cookies[authService.cookieName] : null;
   const session = authService.verifySession(token);
@@ -13,5 +25,6 @@ function requireAdmin(req, res, next) {
 }
 
 module.exports = {
+  requireAuth,
   requireAdmin
 };

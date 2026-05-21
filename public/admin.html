@@ -3,68 +3,94 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin | Casino Masqué</title>
+    <title>Administration | Casino Masqué</title>
     <link rel="stylesheet" href="/assets/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
         <strong>Casino Masqué</strong>
-        <span>Liste des participants</span>
+        <span>Administration</span>
       </div>
       <nav class="nav" aria-label="Navigation principale">
-        <a href="/index.html">Accueil</a>
-        <a href="/register.html">Inscription</a>
-        <a href="/login.html">Connexion</a>
+        <a href="#">Participants</a>
+        <button id="logoutButton" type="button">Déconnexion</button>
       </nav>
     </header>
 
-    <main class="shell" style="display: none;">
+    <main class="shell" id="mainContent" style="display: none;">
+
+      <!-- ── Enregistrer un participant ── -->
+      <section class="panel" style="margin-bottom: 2rem;">
+        <h1>Enregistrer un participant</h1>
+        <form id="registerForm" autocomplete="off">
+          <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+            <div class="field" style="margin-bottom: 0;">
+              <label for="reg-nom">Nom complet</label>
+              <input id="reg-nom" name="nom" type="text" required minlength="2" maxlength="120" placeholder="Jean Dupont">
+            </div>
+            <div class="field" style="margin-bottom: 0;">
+              <label for="reg-telephone">Téléphone</label>
+              <input id="reg-telephone" name="telephone" type="tel" required minlength="6" maxlength="30" placeholder="+243 812 345 678">
+            </div>
+            <button class="primary" type="submit" id="registerBtn">Générer le ticket</button>
+          </div>
+        </form>
+        <div id="registerMessage" class="message" hidden></div>
+        <div id="ticketPreview" style="margin-top: 1.5rem;"></div>
+      </section>
+
+      <!-- ── Statistiques ── -->
+      <div id="statsGrid" class="stats-grid stats-skeleton" aria-label="Statistiques des tickets">
+        <div class="stat-card stat-card--total">
+          <span class="stat-card__icon" aria-hidden="true"><i class="ti ti-ticket"></i></span>
+          <span id="statTotal" class="stat-card__value">…</span>
+          <span class="stat-card__label">Total tickets</span>
+        </div>
+        <div class="stat-card stat-card--actifs">
+          <span class="stat-card__icon" aria-hidden="true"><i class="ti ti-circle-check"></i></span>
+          <span id="statActifs" class="stat-card__value">…</span>
+          <span class="stat-card__label">Actifs</span>
+        </div>
+        <div class="stat-card stat-card--utilises">
+          <span class="stat-card__icon" aria-hidden="true"><i class="ti ti-door-enter"></i></span>
+          <span id="statUtilises" class="stat-card__value">…</span>
+          <span class="stat-card__label">Utilisés</span>
+        </div>
+        <div class="stat-card stat-card--annules">
+          <span class="stat-card__icon" aria-hidden="true"><i class="ti ti-circle-x"></i></span>
+          <span id="statAnnules" class="stat-card__value">…</span>
+          <span class="stat-card__label">Annulés</span>
+        </div>
+        <div class="stat-card stat-card--jour">
+          <span class="stat-card__icon" aria-hidden="true"><i class="ti ti-calendar"></i></span>
+          <span id="statJour" class="stat-card__value">…</span>
+          <span class="stat-card__label">Inscriptions du jour</span>
+        </div>
+      </div>
+
+      <!-- ── Recherche + Table ── -->
       <section class="panel">
         <div class="actions" style="justify-content: space-between; margin-top: 0;">
-          <h1>Tickets</h1>
-          <div class="actions" style="margin-top: 0;">
-            <button id="refreshButton" type="button">Actualiser</button>
-            <button id="logoutButton" type="button">Deconnexion</button>
-          </div>
+          <h1 style="margin-bottom: 0;">Participants</h1>
+          <button id="refreshButton" type="button">Actualiser</button>
         </div>
 
-        <!-- ── Statistiques ── -->
-        <div id="statsGrid" class="stats-grid stats-skeleton" aria-label="Statistiques des tickets">
-          <div class="stat-card stat-card--total">
-            <span class="stat-card__icon" aria-hidden="true">🎟️</span>
-            <span id="statTotal" class="stat-card__value">…</span>
-            <span class="stat-card__label">Total tickets</span>
-          </div>
-          <div class="stat-card stat-card--actifs">
-            <span class="stat-card__icon" aria-hidden="true">✅</span>
-            <span id="statActifs" class="stat-card__value">…</span>
-            <span class="stat-card__label">Actifs</span>
-          </div>
-          <div class="stat-card stat-card--utilises">
-            <span class="stat-card__icon" aria-hidden="true">🚪</span>
-            <span id="statUtilises" class="stat-card__value">…</span>
-            <span class="stat-card__label">Utilisés</span>
-          </div>
-          <div class="stat-card stat-card--annules">
-            <span class="stat-card__icon" aria-hidden="true">❌</span>
-            <span id="statAnnules" class="stat-card__value">…</span>
-            <span class="stat-card__label">Annulés</span>
-          </div>
-          <div class="stat-card stat-card--jour">
-            <span class="stat-card__icon" aria-hidden="true">📅</span>
-            <span id="statJour" class="stat-card__value">…</span>
-            <span class="stat-card__label">Ventes du jour</span>
-          </div>
+        <!-- Barre de recherche -->
+        <div style="position: relative; margin-top: 1.5rem;">
+          <i class="ti ti-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted);"></i>
+          <input id="searchInput" type="text" placeholder="Rechercher par nom ou code…" style="padding-left: 2.8rem;">
         </div>
 
         <div id="adminMessage" class="message" hidden></div>
+
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Nom</th>
-                <th>Telephone</th>
+                <th>Téléphone</th>
                 <th>Code</th>
                 <th>Statut</th>
                 <th>Date</th>
@@ -80,45 +106,95 @@
 
     <script src="/assets/app.js"></script>
     <script>
-      // Auth Guard
-      window.ticketApi.getSession().then(() => {
-        document.querySelector('.shell').style.display = 'block';
-      }).catch(() => {
-        window.location.href = '/login.html';
-      });
+      /* ────────────────────────────────────────────
+         Auth Guard
+      ──────────────────────────────────────────── */
+      (function authGuard() {
+        const raw = sessionStorage.getItem('casinoSession');
 
-      const body = document.querySelector('#ticketsBody');
-      const message = document.querySelector('#adminMessage');
-      const refreshButton = document.querySelector('#refreshButton');
-      const logoutButton = document.querySelector('#logoutButton');
-      const statsGrid = document.querySelector('#statsGrid');
+        if (!raw) {
+          window.location.href = '/login.html';
+          return;
+        }
 
+        try {
+          const session = JSON.parse(raw);
+          if (session.role !== 'admin') {
+            window.location.href = '/login.html';
+            return;
+          }
+        } catch {
+          sessionStorage.removeItem('casinoSession');
+          window.location.href = '/login.html';
+          return;
+        }
+
+        // Vérification côté serveur
+        window.ticketApi.getSession()
+          .then(() => {
+            document.getElementById('mainContent').style.display = 'block';
+          })
+          .catch(() => {
+            sessionStorage.removeItem('casinoSession');
+            window.location.href = '/login.html';
+          });
+      })();
+
+      /* ────────────────────────────────────────────
+         Références DOM
+      ──────────────────────────────────────────── */
+      const body           = document.getElementById('ticketsBody');
+      const adminMessage   = document.getElementById('adminMessage');
+      const registerMsg    = document.getElementById('registerMessage');
+      const refreshButton  = document.getElementById('refreshButton');
+      const logoutButton   = document.getElementById('logoutButton');
+      const statsGrid      = document.getElementById('statsGrid');
+      const searchInput    = document.getElementById('searchInput');
+      const registerForm   = document.getElementById('registerForm');
+      const ticketPreview  = document.getElementById('ticketPreview');
+
+      /* ────────────────────────────────────────────
+         Déconnexion
+      ──────────────────────────────────────────── */
       logoutButton.addEventListener('click', async () => {
         await window.ticketApi.logout();
+        sessionStorage.removeItem('casinoSession');
         window.location.href = '/login.html';
       });
 
+      /* ────────────────────────────────────────────
+         Charger les statistiques
+      ──────────────────────────────────────────── */
       async function loadStats() {
         statsGrid.classList.add('stats-skeleton');
         try {
           const result = await window.ticketApi.getStats();
           const s = result.stats;
-          document.querySelector('#statTotal').textContent    = s.total;
-          document.querySelector('#statActifs').textContent   = s.actifs;
-          document.querySelector('#statUtilises').textContent = s.utilises;
-          document.querySelector('#statAnnules').textContent  = s.annules;
-          document.querySelector('#statJour').textContent     = s.ventesJour;
+          document.getElementById('statTotal').textContent    = s.total;
+          document.getElementById('statActifs').textContent   = s.actifs;
+          document.getElementById('statUtilises').textContent = s.utilises;
+          document.getElementById('statAnnules').textContent  = s.annules;
+          document.getElementById('statJour').textContent     = s.ventesJour;
           statsGrid.classList.remove('stats-skeleton');
         } catch {
-          // Silencieux : les stats ne bloquent pas le reste du dashboard
+          // Silencieux : les stats ne bloquent pas le reste du tableau de bord
         }
       }
 
+      /* ────────────────────────────────────────────
+         Charger la liste des tickets
+      ──────────────────────────────────────────── */
       async function loadTickets() {
         refreshButton.disabled = true;
 
         try {
           const result = await window.ticketApi.getTickets();
+
+          if (result.tickets.length === 0) {
+            body.innerHTML = '<tr><td colspan="7">Aucun ticket pour le moment.</td></tr>';
+            return;
+          }
+
           body.innerHTML = result.tickets.map((ticket) => `
             <tr data-code="${window.ticketUi.escapeHtml(ticket.ticketCode)}">
               <td>${window.ticketUi.escapeHtml(ticket.nom)}</td>
@@ -138,24 +214,64 @@
               </td>
             </tr>
           `).join('');
-
-          if (result.tickets.length === 0) {
-            body.innerHTML = '<tr><td colspan="8">Aucun ticket pour le moment.</td></tr>';
-          }
         } catch (error) {
           if (error.payload && error.payload.message === 'Acces admin refuse.') {
+            sessionStorage.removeItem('casinoSession');
             window.location.href = '/login.html';
             return;
           }
-
-          window.ticketUi.showMessage(message, error.message, 'error');
+          window.ticketUi.showMessage(adminMessage, error.message, 'error');
         } finally {
           refreshButton.disabled = false;
         }
       }
 
+      /* ────────────────────────────────────────────
+         Recherche en temps réel
+      ──────────────────────────────────────────── */
+      searchInput.addEventListener('keyup', () => {
+        const query = searchInput.value.toLowerCase().trim();
+        const rows = body.querySelectorAll('tr[data-code]');
+
+        rows.forEach((row) => {
+          const nom  = row.children[0]?.textContent.toLowerCase() || '';
+          const code = row.children[2]?.textContent.toLowerCase() || '';
+          row.style.display = (nom.includes(query) || code.includes(query)) ? '' : 'none';
+        });
+      });
+
+      /* ────────────────────────────────────────────
+         Enregistrer un participant
+      ──────────────────────────────────────────── */
+      registerForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const btn = document.getElementById('registerBtn');
+        btn.disabled = true;
+        registerMsg.hidden = true;
+        ticketPreview.innerHTML = '';
+
+        const nom       = registerForm.nom.value.trim();
+        const telephone = registerForm.telephone.value.trim();
+
+        try {
+          const result = await window.ticketApi.register({ nom, telephone });
+          window.ticketUi.showMessage(registerMsg, result.message || 'Ticket généré avec succès !');
+          window.ticketUi.renderTicket(result.ticket, ticketPreview);
+          registerForm.reset();
+          await loadStats();
+          await loadTickets();
+        } catch (error) {
+          window.ticketUi.showMessage(registerMsg, error.message, 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      /* ────────────────────────────────────────────
+         Actions sur les lignes (Modifier / Annuler)
+      ──────────────────────────────────────────── */
       body.addEventListener('click', (event) => {
-        const editButton = event.target.closest('[data-action="edit"]');
+        const editButton   = event.target.closest('[data-action="edit"]');
         const cancelButton = event.target.closest('[data-action="cancel"]');
 
         if (editButton) {
@@ -168,6 +284,9 @@
         }
       });
 
+      /* ────────────────────────────────────────────
+         Soumission du formulaire d'édition inline
+      ──────────────────────────────────────────── */
       body.addEventListener('submit', async (event) => {
         if (!event.target.matches('[data-edit-form]')) {
           return;
@@ -182,20 +301,23 @@
         try {
           const data = Object.fromEntries(new FormData(form).entries());
           const result = await window.ticketApi.updateTicket(code, data);
-          window.ticketUi.showMessage(message, result.message);
+          window.ticketUi.showMessage(adminMessage, result.message);
           await loadTickets();
         } catch (error) {
           if (error.payload && error.payload.message === 'Acces admin refuse.') {
+            sessionStorage.removeItem('casinoSession');
             window.location.href = '/login.html';
             return;
           }
-
-          window.ticketUi.showMessage(message, error.message, 'error');
+          window.ticketUi.showMessage(adminMessage, error.message, 'error');
         } finally {
           submitButton.disabled = false;
         }
       });
 
+      /* ────────────────────────────────────────────
+         Ligne d'édition inline
+      ──────────────────────────────────────────── */
       function showEditRow(ticket) {
         const row = body.querySelector(`[data-code="${CSS.escape(ticket.ticketCode)}"]`);
 
@@ -204,7 +326,7 @@
         }
 
         row.innerHTML = `
-          <td colspan="8">
+          <td colspan="7">
             <form data-edit-form data-code="${window.ticketUi.escapeHtml(ticket.ticketCode)}">
               <div class="edit-grid">
                 <div class="field">
@@ -212,10 +334,9 @@
                   <input id="edit-nom" name="nom" value="${window.ticketUi.escapeHtml(ticket.nom)}" required minlength="2" maxlength="120">
                 </div>
                 <div class="field">
-                  <label for="edit-telephone">Telephone</label>
+                  <label for="edit-telephone">Téléphone</label>
                   <input id="edit-telephone" name="telephone" value="${window.ticketUi.escapeHtml(ticket.telephone)}" required minlength="6" maxlength="30">
                 </div>
-
                 <div class="field">
                   <label for="edit-statut">Statut</label>
                   <select id="edit-statut" name="statut">
@@ -233,11 +354,17 @@
         `;
       }
 
+      /* ────────────────────────────────────────────
+         Actualiser
+      ──────────────────────────────────────────── */
       refreshButton.addEventListener('click', () => {
         loadStats();
         loadTickets();
       });
 
+      /* ────────────────────────────────────────────
+         Chargement initial
+      ──────────────────────────────────────────── */
       loadStats();
       loadTickets();
     </script>
