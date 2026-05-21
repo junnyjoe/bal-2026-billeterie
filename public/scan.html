@@ -13,12 +13,13 @@
         <span>Controle des entrees</span>
       </div>
       <nav class="nav" aria-label="Navigation principale">
-        <a href="/index.html">Inscription</a>
+        <a href="/index.html">Accueil</a>
+        <a href="/register.html">Inscription</a>
         <a href="/login.html">Connexion</a>
       </nav>
     </header>
 
-    <main class="shell grid">
+    <main class="shell grid" style="display: none;">
       <section class="panel">
         <div class="actions" style="justify-content: space-between; margin-top: 0;">
           <h1>Valider une entree</h1>
@@ -46,6 +47,13 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
     <script src="/assets/app.js"></script>
     <script>
+      // Auth Guard
+      window.ticketApi.getSession().then(() => {
+        document.querySelector('.shell').style.display = 'grid';
+      }).catch(() => {
+        window.location.href = '/login.html';
+      });
+
       const scanForm = document.querySelector('#scanForm');
       const codeInput = document.querySelector('#code');
       const message = document.querySelector('#scanMessage');
@@ -121,9 +129,6 @@
         stopCamera.hidden = true;
       });
 
-      window.ticketApi.getSession().catch(() => {
-        window.location.href = '/login.html';
-      });
     </script>
   </body>
 </html>

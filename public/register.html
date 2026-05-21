@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inscription | Casino Masqué</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <strong>Casino Masqué</strong>
+        <span>Gestion des inscriptions et tickets</span>
+      </div>
+      <nav class="nav" aria-label="Navigation principale">
+        <a href="/index.html">Accueil</a>
+        <a href="/register.html">Inscription</a>
+        <a href="/login.html">Connexion</a>
+      </nav>
+    </header>
+
+    <main class="shell grid">
+      <section class="panel" id="registrationPanel">
+        <h1>Enregistrer un participant</h1>
+        <form id="registerForm">
+          <div class="field">
+            <label for="nom">Nom complet</label>
+            <input id="nom" name="nom" autocomplete="name" required minlength="2" maxlength="120">
+          </div>
+          <div class="field">
+            <label for="telephone">Telephone</label>
+            <input id="telephone" name="telephone" autocomplete="tel" required minlength="6" maxlength="30">
+          </div>
+
+          <button class="primary" type="submit">Generer le ticket</button>
+          <div id="formMessage" class="message" hidden></div>
+        </form>
+      </section>
+
+      <div id="successPanel" style="display: none; width: 100%; max-width: 500px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <h2 style="color: var(--color-success); margin-bottom: 1rem;">✅ Ticket généré avec succès !</h2>
+          <p>Voici votre billet VIP exclusif pour le Casino Masqué.</p>
+        </div>
+        <section id="ticketPreview" aria-live="polite" style="margin-bottom: 2rem;"></section>
+        <div style="text-align: center;">
+          <button type="button" class="primary" id="newRegistrationBtn">Inscrire un autre participant</button>
+        </div>
+      </div>
+    </main>
+
+    <script src="/assets/app.js"></script>
+    <script>
+      const form = document.querySelector('#registerForm');
+      const message = document.querySelector('#formMessage');
+      const preview = document.querySelector('#ticketPreview');
+      const registrationPanel = document.querySelector('#registrationPanel');
+      const successPanel = document.querySelector('#successPanel');
+      const newRegistrationBtn = document.querySelector('#newRegistrationBtn');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Génération...';
+
+        try {
+          const data = Object.fromEntries(new FormData(form).entries());
+          const result = await window.ticketApi.register(data);
+
+          window.ticketUi.renderTicket(result.ticket, preview);
+          form.reset();
+          
+          registrationPanel.style.display = 'none';
+          successPanel.style.display = 'block';
+        } catch (error) {
+          window.ticketUi.showMessage(message, error.message, 'error');
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Générer le ticket';
+        }
+      });
+
+      newRegistrationBtn.addEventListener('click', () => {
+        successPanel.style.display = 'none';
+        registrationPanel.style.display = 'block';
+        preview.innerHTML = '';
+        message.hidden = true;
+      });
+    </script>
+  </body>
+</html>

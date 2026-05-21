@@ -13,12 +13,13 @@
         <span>Liste des participants</span>
       </div>
       <nav class="nav" aria-label="Navigation principale">
-        <a href="/index.html">Inscription</a>
+        <a href="/index.html">Accueil</a>
+        <a href="/register.html">Inscription</a>
         <a href="/login.html">Connexion</a>
       </nav>
     </header>
 
-    <main class="shell">
+    <main class="shell" style="display: none;">
       <section class="panel">
         <div class="actions" style="justify-content: space-between; margin-top: 0;">
           <h1>Tickets</h1>
@@ -79,6 +80,13 @@
 
     <script src="/assets/app.js"></script>
     <script>
+      // Auth Guard
+      window.ticketApi.getSession().then(() => {
+        document.querySelector('.shell').style.display = 'block';
+      }).catch(() => {
+        window.location.href = '/login.html';
+      });
+
       const body = document.querySelector('#ticketsBody');
       const message = document.querySelector('#adminMessage');
       const refreshButton = document.querySelector('#refreshButton');

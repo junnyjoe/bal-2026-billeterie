@@ -3,68 +3,30 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Inscription | Casino Masqué</title>
+    <title>Accueil | Casino Masqué</title>
     <link rel="stylesheet" href="/assets/styles.css">
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
         <strong>Casino Masqué</strong>
-        <span>Gestion des inscriptions et tickets</span>
+        <span>Bal de Promo 2026</span>
       </div>
       <nav class="nav" aria-label="Navigation principale">
-        <a href="/index.html">Inscription</a>
+        <a href="/index.html">Accueil</a>
+        <a href="/register.html">Inscription</a>
         <a href="/login.html">Connexion</a>
       </nav>
     </header>
 
-    <main class="shell grid">
-      <section class="panel">
-        <h1>Enregistrer un participant</h1>
-        <form id="registerForm">
-          <div class="field">
-            <label for="nom">Nom complet</label>
-            <input id="nom" name="nom" autocomplete="name" required minlength="2" maxlength="120">
-          </div>
-          <div class="field">
-            <label for="telephone">Telephone</label>
-            <input id="telephone" name="telephone" autocomplete="tel" required minlength="6" maxlength="30">
-          </div>
-
-          <button class="primary" type="submit">Generer le ticket</button>
-          <div id="formMessage" class="message" hidden></div>
-        </form>
+    <main class="shell">
+      <section class="hero">
+        <h1>Bal de Promo 2026<br><span style="font-size: 0.6em; color: var(--color-text);">Édition Casino Masqué</span></h1>
+        <p>Plongez dans l'élégance et le mystère. Réservez votre place exclusive pour la soirée la plus prestigieuse de l'année. Les places sont limitées.</p>
+        <div class="actions" style="justify-content: center;">
+          <a href="/register.html" class="button primary" style="font-size: 1.2rem; padding: 1rem 3rem;">Réserver ma place</a>
+        </div>
       </section>
-
-      <section id="ticketPreview" aria-live="polite"></section>
     </main>
-
-    <script src="/assets/app.js"></script>
-    <script>
-      const form = document.querySelector('#registerForm');
-      const message = document.querySelector('#formMessage');
-      const preview = document.querySelector('#ticketPreview');
-
-      form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const submitButton = form.querySelector('button');
-        submitButton.disabled = true;
-        submitButton.textContent = 'Generation...';
-
-        try {
-          const data = Object.fromEntries(new FormData(form).entries());
-          const result = await window.ticketApi.register(data);
-
-          window.ticketUi.showMessage(message, result.message);
-          window.ticketUi.renderTicket(result.ticket, preview);
-          form.reset();
-        } catch (error) {
-          window.ticketUi.showMessage(message, error.message, 'error');
-        } finally {
-          submitButton.disabled = false;
-          submitButton.textContent = 'Generer le ticket';
-        }
-      });
-    </script>
   </body>
 </html>
