@@ -3,20 +3,18 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin | Bal 2026</title>
+    <title>Admin | Casino Masqué</title>
     <link rel="stylesheet" href="/assets/styles.css">
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
-        <strong>Bal 2026</strong>
+        <strong>Casino Masqué</strong>
         <span>Liste des participants</span>
       </div>
       <nav class="nav" aria-label="Navigation principale">
         <a href="/index.html">Inscription</a>
         <a href="/login.html">Connexion</a>
-        <a href="/admin.html">Admin</a>
-        <a href="/scan.html">Scan</a>
       </nav>
     </header>
 
@@ -66,7 +64,6 @@
               <tr>
                 <th>Nom</th>
                 <th>Telephone</th>
-                <th>Email</th>
                 <th>Code</th>
                 <th>Statut</th>
                 <th>Date</th>
@@ -118,7 +115,6 @@
             <tr data-code="${window.ticketUi.escapeHtml(ticket.ticketCode)}">
               <td>${window.ticketUi.escapeHtml(ticket.nom)}</td>
               <td>${window.ticketUi.escapeHtml(ticket.telephone)}</td>
-              <td>${window.ticketUi.escapeHtml(ticket.email || '-')}</td>
               <td><span class="ticket-code">${window.ticketUi.escapeHtml(ticket.ticketCode)}</span></td>
               <td><span class="badge ${ticket.statut}">${ticket.statut}</span></td>
               <td>${window.ticketUi.formatDate(ticket.dateAchat)}</td>
@@ -211,10 +207,7 @@
                   <label for="edit-telephone">Telephone</label>
                   <input id="edit-telephone" name="telephone" value="${window.ticketUi.escapeHtml(ticket.telephone)}" required minlength="6" maxlength="30">
                 </div>
-                <div class="field">
-                  <label for="edit-email">Email</label>
-                  <input id="edit-email" name="email" type="email" value="${window.ticketUi.escapeHtml(ticket.email || '')}">
-                </div>
+
                 <div class="field">
                   <label for="edit-statut">Statut</label>
                   <select id="edit-statut" name="statut">

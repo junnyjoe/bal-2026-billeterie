@@ -117,7 +117,7 @@ function renderTicket(ticket, target) {
     <article class="ticket">
       <div class="ticket-header">
         <h2>Ticket d'entree</h2>
-        <div>Bal 2026</div>
+        <div>Casino Masqué</div>
       </div>
       <div class="ticket-body">
         <div>
