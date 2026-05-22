@@ -19,16 +19,11 @@ async function login({ email, password, username }) {
 
   // 1. Vérifier d'abord si c'est le compte admin (.env)
   const expectedUsername = process.env.ADMIN_USERNAME;
+  const expectedEmail = process.env.ADMIN_EMAIL;
   const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
-  // Ensure admin credentials are configured
-  if (!expectedUsername || !adminPasswordHash) {
-    const err = new Error('Authentification admin non configuree.');
-    err.statusCode = 500;
-    throw err;
-  }
   if (expectedUsername && adminPasswordHash) {
-    const isAdminUsername = (loginIdentifier === expectedUsername || loginIdentifier === process.env.ADMIN_EMAIL);
+    const isAdminUsername = (loginIdentifier === expectedUsername || loginIdentifier === expectedEmail);
     if (isAdminUsername) {
       const passwordMatches = await bcrypt.compare(password, adminPasswordHash);
       if (passwordMatches) {
@@ -39,14 +34,10 @@ async function login({ email, password, username }) {
         );
         return { token, user: { role: 'admin', username: expectedUsername, nom: 'Administrateur' } };
       } else {
-        const error = new Error('Identifiants admin invalides.');
+        const error = new Error('Identifiants invalides.');
         error.statusCode = 401;
         throw error;
       }
-    } else {
-      const error = new Error('Identifiants admin invalides.');
-      error.statusCode = 401;
-      throw error;
     }
   }
 
