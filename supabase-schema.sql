@@ -21,3 +21,16 @@ ALTER TABLE public.participants ENABLE ROW LEVEL SECURITY;
 
 -- L'application Express se connecte avec une chaine Postgres cote serveur.
 -- Aucune policy publique n'est creee afin d'eviter l'acces direct depuis le navigateur.
+
+
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nom VARCHAR(120) NOT NULL,
+  telephone VARCHAR(30),
+  email VARCHAR(160) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(50) NOT NULL DEFAULT 'participant',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
