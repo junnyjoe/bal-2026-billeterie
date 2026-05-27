@@ -114,12 +114,26 @@ function sanitizeParticipant(payload) {
 
 function extractTicketCode(value) {
   const raw = String(value || '').trim();
+
+  // 1. Essayer de parser comme une URL et extraire le paramètre ?code=
   try {
     const url = new URL(raw);
-    return url.searchParams.get('code') || raw;
+    const codeParam = url.searchParams.get('code');
+    if (codeParam) return codeParam.trim();
   } catch {
-    return raw;
+    // pas une URL valide, continuer
   }
+
+  // 2. Chercher un pattern ?code= même dans une string mal formée
+  const codeMatch = raw.match(/[?&]code=([^&\s]+)/i);
+  if (codeMatch) return decodeURIComponent(codeMatch[1]).trim();
+
+  // 3. Chercher un pattern de code ticket directement (ex: BAL-2026-XXXX)
+  const ticketMatch = raw.match(/(BAL-\d{4}-[A-Z0-9]+)/i);
+  if (ticketMatch) return ticketMatch[1].trim();
+
+  // 4. Retourner la valeur brute
+  return raw;
 }
 
 module.exports = {
