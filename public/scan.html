@@ -7,160 +7,158 @@
     <link rel="stylesheet" href="/assets/styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
+    <style>
+      .scan-result { border-radius:12px; padding:1.5rem; text-align:center; font-size:1.2rem; font-weight:700; margin-top:1rem; display:none; }
+      .scan-result.valid   { background:rgba(46,204,113,.15); border:1px solid #2ecc71; color:#2ecc71; }
+      .scan-result.invalid { background:rgba(231,76,60,.15);  border:1px solid #e74c3c; color:#e74c3c; }
+      .scan-result.show    { display:block; }
+    </style>
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
-        <strong>Casino Masqué</strong> <span>Contrôle des entrées</span>
+        <strong>Casino Masqué</strong>
+        <span>Contrôle des entrées</span>
       </div>
-      <nav class="nav" aria-label="Navigation principale">
+      <nav class="nav">
+        <span id="userGreeting" style="color:var(--color-text-muted);font-size:.9rem;"></span>
         <button id="logoutButton" type="button">Déconnexion</button>
       </nav>
     </header>
 
     <main class="shell" id="mainContent" style="display:none;">
-      <!-- ── Section Scan ── -->
+
+      <!-- ── Scanner ── -->
       <section class="panel" style="margin-bottom:2rem;">
         <h1>Valider une entrée</h1>
-        <p class="center" style="color:var(--color-primary);">Scannés cette session : <span id="sessionCounter" class="badge">0</span></p>
-        <form id="codeForm" autocomplete="off" style="display:flex;gap:0.5rem;align-items:center;">
+        <p style="color:var(--color-text-muted);">Scannés cette session : <span id="sessionCounter" class="badge">0</span></p>
+        <form id="codeForm" autocomplete="off" style="display:flex;gap:.5rem;align-items:center;">
           <input id="codeInput" type="text" placeholder="Code ticket ou URL QR" required style="flex:1;">
           <button class="primary" type="submit">Valider</button>
         </form>
         <div style="margin-top:1rem;">
-          <button id="startCam" type="button" class="secondary">Scanner avec caméra</button>
+          <button id="startCam" type="button" class="secondary"><i class="ti ti-camera"></i> Scanner avec caméra</button>
           <button id="stopCam" type="button" class="secondary" hidden>Arrêter caméra</button>
         </div>
-        <div id="reader" style="margin-top:1rem; width:100%; max-width:400px;"></div>
-        <div id="scanBanner" class="message" hidden style="margin-top:1rem;"></div>
+        <div id="reader" style="margin-top:1rem;width:100%;max-width:400px;"></div>
+        <div id="scanResult" class="scan-result"></div>
       </section>
 
       <!-- ── Liste des participants ── -->
       <section class="panel">
-        <h2>Liste des participants</h2>
-        <table>
-          <thead>
-            <tr><th>Nom</th><th>Statut</th></tr>
-          </thead>
-          <tbody id="participantsBody">
-            <tr><td colspan="2" class="center">Chargement...</td></tr>
-          </tbody>
-        </table>
+        <div class="actions" style="justify-content:space-between;margin-top:0;">
+          <h2 style="margin-bottom:0;">Participants enregistrés</h2>
+          <button id="refreshBtn" type="button"><i class="ti ti-refresh"></i> Actualiser</button>
+        </div>
+        <div style="position:relative;margin-top:1rem;">
+          <i class="ti ti-search" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--color-text-muted);"></i>
+          <input id="searchInput" type="text" placeholder="Rechercher…" style="padding-left:2.8rem;">
+        </div>
+        <div class="table-wrap" style="margin-top:1rem;">
+          <table>
+            <thead><tr><th>Nom</th><th>Prénom</th><th>Code ticket</th><th>Statut</th><th>Date scan</th></tr></thead>
+            <tbody id="participantsBody"><tr><td colspan="5" class="center">Chargement…</td></tr></tbody>
+          </table>
+        </div>
       </section>
     </main>
 
     <script src="/assets/app.js"></script>
     <script>
-      /* ────────────────────────────────────────
-         Auth Guard & Session Check
-      ──────────────────────────────────────── */
-      (function authGuard() {
-        const raw = sessionStorage.getItem('casinoSession');
-        if (!raw) { window.location.href = '/login.html'; return; }
-        try { var sess = JSON.parse(raw); if (!['admin','controleur'].includes(sess.role)) { throw new Error(); } }
-        catch { sessionStorage.removeItem('casinoSession'); window.location.href = '/login.html'; return; }
-        // verify server side session
-        window.ticketApi.getSession().then(() => {
-          document.getElementById('mainContent').style.display = 'block';
-        }).catch(() => { sessionStorage.removeItem('casinoSession'); window.location.href = '/login.html'; });
-      })();
+    /* AUTH GUARD */
+    (function () {
+      const raw = sessionStorage.getItem('casinoSession');
+      if (!raw) { window.location.href = '/login.html'; return; }
+      try {
+        const sess = JSON.parse(raw);
+        if (!['admin','controleur'].includes(sess.role)) throw new Error();
+        window._session = sess;
+        document.getElementById('userGreeting').textContent = sess.nom || '';
+      } catch { sessionStorage.removeItem('casinoSession'); window.location.href = '/login.html'; return; }
 
-      const logoutBtn = document.getElementById('logoutButton');
-      logoutBtn.addEventListener('click', async () => {
-        await window.ticketApi.logout();
-        sessionStorage.removeItem('casinoSession');
-        window.location.href = '/login.html';
-      });
+      window.ticketApi.getSession()
+        .then(() => { document.getElementById('mainContent').style.display = 'block'; loadParticipants(); })
+        .catch(() => { sessionStorage.removeItem('casinoSession'); window.location.href = '/login.html'; });
+    })();
 
-      /* ────────────────────────────────────────
-         Scan logic
-      ──────────────────────────────────────── */
-      let sessionValidated = 0;
-      const counterEl = document.getElementById('sessionCounter');
-      const banner = document.getElementById('scanBanner');
+    document.getElementById('logoutButton').addEventListener('click', async () => {
+      await window.ticketApi.logout();
+      sessionStorage.removeItem('casinoSession');
+      window.location.href = '/login.html';
+    });
 
-      function showBanner(type, message) {
-        banner.className = `message ${type}`;
-        banner.textContent = message;
-        banner.hidden = false;
-        setTimeout(() => { banner.hidden = true; }, 5000);
+    /* SCANNER */
+    let sessionValidated = 0;
+    const scanResult = document.getElementById('scanResult');
+
+    function showScan(type, message) {
+      scanResult.className = `scan-result ${type} show`;
+      scanResult.textContent = message;
+      setTimeout(() => { scanResult.classList.remove('show'); }, 6000);
+    }
+
+    async function validateCode(code) {
+      try {
+        const r = await window.ticketApi.scan(code);
+        sessionValidated++;
+        document.getElementById('sessionCounter').textContent = sessionValidated;
+        showScan('valid', `✅ VALIDE — ${r.ticket?.prenom || ''} ${r.ticket?.nom || ''}`);
+        loadParticipants();
+      } catch (err) {
+        if (err.status === 409) showScan('invalid', `⚠️ DÉJÀ UTILISÉ — Billet déjà scanné`);
+        else if (err.status === 404) showScan('invalid', `❌ INVALIDE — Code inconnu`);
+        else showScan('invalid', err.message || 'Erreur');
       }
+    }
 
-      async function validateCode(code) {
-        try {
-          const result = await window.ticketApi.scan(code);
-          // success -> valid ticket
-          sessionValidated++;
-          counterEl.textContent = sessionValidated;
-          showBanner('success', `✅ VALIDE — ${result.nom}`);
-          await loadParticipants();
-        } catch (err) {
-          if (err.payload && err.payload.status === 409) {
-            showBanner('error', `⚠️ DÉJÀ UTILISÉ — Billet déjà scanné`);
-          } else if (err.payload && err.payload.status === 404) {
-            showBanner('error', `❌ INVALIDE — Code inconnu`);
-          } else {
-            showBanner('error', err.message || 'Erreur de validation');
-          }
-        }
-      }
+    document.getElementById('codeForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const code = e.target.codeInput.value.trim();
+      if (code) await validateCode(code);
+      e.target.codeInput.value = '';
+    });
 
-      // Form submit
-      document.getElementById('codeForm').addEventListener('submit', async e => {
-        e.preventDefault();
-        const code = e.target.codeInput.value.trim();
-        if (code) await validateCode(code);
-        e.target.codeInput.value = '';
+    let html5QrCode = null;
+    document.getElementById('startCam').addEventListener('click', () => {
+      document.getElementById('startCam').hidden = true;
+      document.getElementById('stopCam').hidden  = false;
+      html5QrCode = new Html5Qrcode('reader');
+      html5QrCode.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, decoded => {
+        validateCode(decoded);
+      }).catch(err => { showScan('invalid', err.message || 'Impossible de démarrer la caméra'); stopCamera(); });
+    });
+    function stopCamera() {
+      if (html5QrCode) { html5QrCode.stop().catch(() => {}); html5QrCode.clear(); html5QrCode = null; }
+      document.getElementById('startCam').hidden = false;
+      document.getElementById('stopCam').hidden  = true;
+    }
+    document.getElementById('stopCam').addEventListener('click', stopCamera);
+
+    /* LISTE PARTICIPANTS */
+    async function loadParticipants() {
+      const tb = document.getElementById('participantsBody');
+      try {
+        const { tickets } = await window.ticketApi.getTickets();
+        if (!tickets.length) { tb.innerHTML = '<tr><td colspan="5" class="center">Aucun participant.</td></tr>'; return; }
+        tb.innerHTML = tickets.map(t => `
+          <tr>
+            <td>${window.ticketUi.escapeHtml(t.nom)}</td>
+            <td>${window.ticketUi.escapeHtml(t.prenom || '-')}</td>
+            <td><span class="ticket-code">${window.ticketUi.escapeHtml(t.ticketCode)}</span></td>
+            <td><span class="badge ${t.statut}">${t.statut}</span></td>
+            <td>${window.ticketUi.formatDate(t.dateScan)}</td>
+          </tr>`).join('');
+      } catch (e) { tb.innerHTML = '<tr><td colspan="5" class="center error">Erreur de chargement.</td></tr>'; }
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', loadParticipants);
+
+    document.getElementById('searchInput').addEventListener('keyup', () => {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      document.querySelectorAll('#participantsBody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
       });
-
-      /* ────────────────────────────────────────
-         Camera QR scanner
-      ──────────────────────────────────────── */
-      let html5QrCode = null;
-      const startBtn = document.getElementById('startCam');
-      const stopBtn = document.getElementById('stopCam');
-      const readerDiv = document.getElementById('reader');
-
-      startBtn.addEventListener('click', () => {
-        startBtn.hidden = true;
-        stopBtn.hidden = false;
-        html5QrCode = new Html5Qrcode('reader');
-        const config = { fps: 10, qrbox: 250 };
-        html5QrCode.start({ facingMode: 'environment' }, config, decoded => {
-          validateCode(decoded);
-        }).catch(err => {
-          showBanner('error', err.message || 'Impossible de démarrer la caméra');
-          stopCamera();
-        });
-      });
-
-      function stopCamera() { if (html5QrCode) { html5QrCode.stop().catch(() => {}); html5QrCode.clear(); html5QrCode = null; } startBtn.hidden = false; stopBtn.hidden = true; }
-      stopBtn.addEventListener('click', stopCamera);
-
-      /* ────────────────────────────────────────
-         Load participants list
-      ──────────────────────────────────────── */
-      async function loadParticipants() {
-        const tbody = document.getElementById('participantsBody');
-        try {
-          const data = await window.ticketApi.getTickets();
-          const tickets = data.tickets || [];
-          if (tickets.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="2" class="center">Aucun participant pour le moment.</td></tr>';
-            return;
-          }
-          tbody.innerHTML = tickets.map(t => `
-            <tr>
-              <td>${window.ticketUi.escapeHtml(t.nom)}</td>
-              <td class="badge ${t.statut === 'actif' ? 'active' : 'used'}">${window.ticketUi.escapeHtml(t.statut)}</td>
-            </tr>`).join('');
-        } catch (e) {
-          tbody.innerHTML = '<tr><td colspan="2" class="center error">Erreur lors du chargement.</td></tr>';
-        }
-      }
-
-      // Initial load
-      loadParticipants();
+    });
     </script>
   </body>
 </html>

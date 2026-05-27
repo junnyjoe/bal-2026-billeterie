@@ -1,53 +1,77 @@
 const express = require('express');
 const { body, param } = require('express-validator');
-const userController = require('../controllers/ticketController');
-const validateRequest = require('../middleware/validateRequest');
-const { requireAdmin } = require('../middleware/authMiddleware');
+const ticketController = require('../controllers/ticketController');
+const validateRequest  = require('../middleware/validateRequest');
+const { requireAdmin, requireAdminOrController } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+// ── Enregistrer participant (N tickets) ─── ADMIN only
 router.post(
   '/register',
+  requireAdmin,
   [
-    body('nom').trim().escape().isLength({ min: 2, max: 120 }).withMessage('Le nom doit contenir entre 2 et 120 caracteres.'),
-    body('telephone').trim().escape().isLength({ min: 6, max: 30 }).withMessage('Le telephone est obligatoire.'),
-    body('email').optional({ checkFalsy: true }).isEmail().normalizeEmail().withMessage('Email invalide.')
+    body('nom').trim().escape().isLength({ min: 1, max: 120 }).withMessage('Nom obligatoire.'),
+    body('prenom').trim().escape().isLength({ min: 0, max: 120 }),
+    body('telephone').trim().escape().isLength({ min: 6, max: 30 }).withMessage('Téléphone obligatoire.'),
+    body('vendeur').trim().escape().isLength({ min: 0, max: 120 }),
+    body('nombreTickets').optional().isInt({ min: 1, max: 20 }).withMessage('Nombre de tickets invalide (1-20).'),
+    body('dateAchat').optional().isISO8601().withMessage('Date d\'achat invalide.')
   ],
   validateRequest,
-  userController.registerParticipant
+  ticketController.registerParticipant
 );
 
-router.get('/tickets', requireAdmin, userController.getTickets);
+// ── Liste des tickets ─── Admin + Controleur
+router.get('/tickets', requireAdminOrController, ticketController.getTickets);
 
-router.get('/stats', requireAdmin, userController.getStats);
+// ── Stats ─── Admin only
+router.get('/stats', requireAdmin, ticketController.getStats);
 
+// ── Logs d'audit ─── Admin only
+router.get('/audit-logs', requireAdmin, ticketController.getAuditLogs);
+
+// ── Ticket par code ─── Admin + Controleur
 router.get(
   '/ticket/:code',
-  [param('code').trim().escape().isLength({ min: 6, max: 80 }).withMessage('Code ticket invalide.')],
+  requireAdminOrController,
+  [param('code').trim().escape().isLength({ min: 3, max: 80 })],
   validateRequest,
-  userController.getTicketByCode
+  ticketController.getTicketByCode
 );
 
+// ── Modifier ticket ─── Admin only
 router.put(
   '/ticket/:code',
   requireAdmin,
   [
-    param('code').trim().escape().isLength({ min: 6, max: 80 }).withMessage('Code ticket invalide.'),
-    body('nom').trim().escape().isLength({ min: 2, max: 120 }).withMessage('Le nom doit contenir entre 2 et 120 caracteres.'),
-    body('telephone').trim().escape().isLength({ min: 6, max: 30 }).withMessage('Le telephone est obligatoire.'),
-    body('email').optional({ checkFalsy: true }).isEmail().normalizeEmail().withMessage('Email invalide.'),
-    body('statut').isIn(['active', 'used']).withMessage('Statut invalide.')
+    param('code').trim().escape().isLength({ min: 3, max: 80 }),
+    body('nom').optional().trim().escape().isLength({ min: 1, max: 120 }),
+    body('prenom').optional().trim().escape().isLength({ min: 0, max: 120 }),
+    body('telephone').optional().trim().escape().isLength({ min: 6, max: 30 }),
+    body('vendeur').optional().trim().escape().isLength({ min: 0, max: 120 }),
+    body('statut').optional().isIn(['active', 'used', 'cancelled']).withMessage('Statut invalide.')
   ],
   validateRequest,
-  userController.updateTicket
+  ticketController.updateTicket
 );
 
+// ── Supprimer ticket ─── Admin only
+router.delete(
+  '/ticket/:code',
+  requireAdmin,
+  [param('code').trim().escape().isLength({ min: 3, max: 80 })],
+  validateRequest,
+  ticketController.deleteTicket
+);
+
+// ── Scan ─── Admin + Controleur
 router.post(
   '/scan',
-  requireAdmin,
-  [body('code').trim().escape().isLength({ min: 6, max: 300 }).withMessage('Code ticket obligatoire.')],
+  requireAdminOrController,
+  [body('code').trim().escape().isLength({ min: 3, max: 300 }).withMessage('Code ticket obligatoire.')],
   validateRequest,
-  userController.scanTicket
+  ticketController.scanTicket
 );
 
 module.exports = router;

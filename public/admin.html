@@ -6,367 +6,567 @@
     <title>Administration | Casino Masqué</title>
     <link rel="stylesheet" href="/assets/styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8" defer></script>
+    <style>
+      /* ── Tabs ── */
+      .page-tabs { display:flex; gap:0; border-bottom:2px solid var(--color-border); margin-bottom:1.5rem; flex-wrap:wrap; }
+      .page-tab  { padding:.75rem 1.4rem; font-family:var(--font-body); font-weight:600; font-size:.9rem; text-transform:uppercase; letter-spacing:1px; color:var(--color-text-muted); cursor:pointer; border:none; background:none; border-bottom:3px solid transparent; margin-bottom:-2px; transition:color .25s,border-color .25s; white-space:nowrap; }
+      .page-tab:hover  { color:var(--color-text); }
+      .page-tab.active { color:var(--color-gold); border-bottom-color:var(--color-gold); }
+      .tab-panel { display:none; }
+      .tab-panel.active { display:block; }
+
+      /* ── Form grid ── */
+      .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; }
+      .form-grid .field { margin-bottom:0; }
+
+      /* ── Scan banner ── */
+      .scan-result { border-radius:12px; padding:1.5rem; text-align:center; font-size:1.1rem; font-weight:700; margin-top:1rem; display:none; }
+      .scan-result.valid   { background:rgba(46,204,113,.15); border:1px solid #2ecc71; color:#2ecc71; }
+      .scan-result.invalid { background:rgba(231,76,60,.15);  border:1px solid #e74c3c; color:#e74c3c; }
+      .scan-result.show    { display:block; }
+
+      /* ── Table actions ── */
+      .btn-danger { background:rgba(231,76,60,.15); border:1px solid #e74c3c; color:#e74c3c; padding:.35rem .75rem; border-radius:6px; cursor:pointer; font-size:.82rem; }
+      .btn-danger:hover { background:rgba(231,76,60,.3); }
+      .btn-sm { padding:.35rem .75rem; font-size:.82rem; }
+
+      /* ── Audit logs ── */
+      .log-action { font-weight:600; color:var(--color-gold); }
+      .log-user   { color:var(--color-text-muted); font-size:.82rem; }
+
+      /* ── Modal overlay ── */
+      .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; align-items:center; justify-content:center; padding:1rem; }
+      .modal-overlay.open { display:flex; }
+      .modal-box { background:var(--color-surface); border:1px solid var(--color-border); border-radius:16px; padding:2rem; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; }
+      .modal-box h2 { margin-bottom:1.5rem; }
+      .modal-close { float:right; background:none; border:none; color:var(--color-text-muted); font-size:1.4rem; cursor:pointer; line-height:1; }
+    </style>
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
         <strong>Casino Masqué</strong>
-        <span>Administration</span>
+        <span id="roleLabel">Administration</span>
       </div>
-      <nav class="nav" aria-label="Navigation principale">
-        <a href="#">Participants</a>
+      <nav class="nav">
+        <span id="userGreeting" style="color:var(--color-text-muted);font-size:.9rem;"></span>
         <button id="logoutButton" type="button">Déconnexion</button>
       </nav>
     </header>
 
-    <main class="shell" id="mainContent" style="display: none;">
-
-      <!-- ── Enregistrer un participant ── -->
-      <section class="panel" style="margin-bottom: 2rem;">
-        <h1>Enregistrer un participant</h1>
-        <form id="registerForm" autocomplete="off">
-          <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
-            <div class="field" style="margin-bottom: 0;">
-              <label for="reg-nom">Nom complet</label>
-              <input id="reg-nom" name="nom" type="text" required minlength="2" maxlength="120" placeholder="Jean Dupont">
-            </div>
-            <div class="field" style="margin-bottom: 0;">
-              <label for="reg-telephone">Téléphone</label>
-              <input id="reg-telephone" name="telephone" type="tel" required minlength="6" maxlength="30" placeholder="+243 812 345 678">
-            </div>
-            <button class="primary" type="submit" id="registerBtn">Générer le ticket</button>
-          </div>
-        </form>
-        <div id="registerMessage" class="message" hidden></div>
-        <div id="ticketPreview" style="margin-top: 1.5rem;"></div>
-      </section>
+    <main class="shell" id="mainContent" style="display:none;">
 
       <!-- ── Statistiques ── -->
-      <div id="statsGrid" class="stats-grid stats-skeleton" aria-label="Statistiques des tickets">
-        <div class="stat-card stat-card--total">
-          <span class="stat-card__icon" aria-hidden="true"><i class="ti ti-ticket"></i></span>
-          <span id="statTotal" class="stat-card__value">…</span>
-          <span class="stat-card__label">Total tickets</span>
-        </div>
-        <div class="stat-card stat-card--actifs">
-          <span class="stat-card__icon" aria-hidden="true"><i class="ti ti-circle-check"></i></span>
-          <span id="statActifs" class="stat-card__value">…</span>
-          <span class="stat-card__label">Actifs</span>
-        </div>
-        <div class="stat-card stat-card--utilises">
-          <span class="stat-card__icon" aria-hidden="true"><i class="ti ti-door-enter"></i></span>
-          <span id="statUtilises" class="stat-card__value">…</span>
-          <span class="stat-card__label">Utilisés</span>
-        </div>
-        <div class="stat-card stat-card--annules">
-          <span class="stat-card__icon" aria-hidden="true"><i class="ti ti-circle-x"></i></span>
-          <span id="statAnnules" class="stat-card__value">…</span>
-          <span class="stat-card__label">Annulés</span>
-        </div>
-        <div class="stat-card stat-card--jour">
-          <span class="stat-card__icon" aria-hidden="true"><i class="ti ti-calendar"></i></span>
-          <span id="statJour" class="stat-card__value">…</span>
-          <span class="stat-card__label">Inscriptions du jour</span>
-        </div>
+      <div id="statsGrid" class="stats-grid stats-skeleton" style="margin-bottom:2rem;">
+        <div class="stat-card stat-card--total"><span class="stat-card__icon"><i class="ti ti-ticket"></i></span><span id="statTotal" class="stat-card__value">…</span><span class="stat-card__label">Total tickets</span></div>
+        <div class="stat-card stat-card--actifs"><span class="stat-card__icon"><i class="ti ti-circle-check"></i></span><span id="statActifs" class="stat-card__value">…</span><span class="stat-card__label">Actifs</span></div>
+        <div class="stat-card stat-card--utilises"><span class="stat-card__icon"><i class="ti ti-door-enter"></i></span><span id="statUtilises" class="stat-card__value">…</span><span class="stat-card__label">Utilisés</span></div>
+        <div class="stat-card stat-card--annules"><span class="stat-card__icon"><i class="ti ti-circle-x"></i></span><span id="statAnnules" class="stat-card__value">…</span><span class="stat-card__label">Annulés</span></div>
+        <div class="stat-card stat-card--jour"><span class="stat-card__icon"><i class="ti ti-calendar"></i></span><span id="statJour" class="stat-card__value">…</span><span class="stat-card__label">Aujourd'hui</span></div>
       </div>
 
-      <!-- ── Recherche + Table ── -->
-      <section class="panel">
-        <div class="actions" style="justify-content: space-between; margin-top: 0;">
-          <h1 style="margin-bottom: 0;">Participants</h1>
-          <button id="refreshButton" type="button">Actualiser</button>
-        </div>
+      <!-- ── Onglets ── -->
+      <div class="page-tabs" role="tablist">
+        <button class="page-tab active" role="tab" data-tab="participants">Participants</button>
+        <button class="page-tab" role="tab" data-tab="ajouter">Ajouter / Scanner</button>
+        <button class="page-tab admin-only" role="tab" data-tab="controleurs">Contrôleurs</button>
+        <button class="page-tab admin-only" role="tab" data-tab="logs">Historique</button>
+      </div>
 
-        <!-- Barre de recherche -->
-        <div style="position: relative; margin-top: 1.5rem;">
-          <i class="ti ti-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted);"></i>
-          <input id="searchInput" type="text" placeholder="Rechercher par nom ou code…" style="padding-left: 2.8rem;">
-        </div>
+      <!-- ══════════════════════════════════════════
+           TAB 1 : Participants
+      ══════════════════════════════════════════ -->
+      <div class="tab-panel active" id="tab-participants">
+        <section class="panel">
+          <div class="actions" style="justify-content:space-between;margin-top:0;">
+            <h1 style="margin-bottom:0;">Participants</h1>
+            <button id="refreshButton" type="button"><i class="ti ti-refresh"></i> Actualiser</button>
+          </div>
+          <div style="position:relative;margin-top:1.5rem;">
+            <i class="ti ti-search" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--color-text-muted);"></i>
+            <input id="searchInput" type="text" placeholder="Rechercher par nom, prénom, code…" style="padding-left:2.8rem;">
+          </div>
+          <div id="adminMessage" class="message" hidden></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nom</th><th>Prénom</th><th>Téléphone</th><th>Vendeur</th>
+                  <th>Code ticket</th><th>Statut</th><th>Date achat</th>
+                  <th>Ticket</th><th class="admin-only">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ticketsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
 
-        <div id="adminMessage" class="message" hidden></div>
+      <!-- ══════════════════════════════════════════
+           TAB 2 : Ajouter / Scanner
+      ══════════════════════════════════════════ -->
+      <div class="tab-panel" id="tab-ajouter">
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Téléphone</th>
-                <th>Code</th>
-                <th>Statut</th>
-                <th>Date</th>
-                <th>Ticket</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="ticketsBody"></tbody>
-          </table>
-        </div>
-      </section>
+        <!-- Ajouter un participant (admin only) -->
+        <section class="panel admin-only" style="margin-bottom:2rem;">
+          <h1>Ajouter un participant</h1>
+          <form id="registerForm" autocomplete="off">
+            <div class="form-grid">
+              <div class="field"><label for="reg-nom">Nom *</label><input id="reg-nom" name="nom" type="text" required minlength="1" maxlength="120" placeholder="Dupont"></div>
+              <div class="field"><label for="reg-prenom">Prénom</label><input id="reg-prenom" name="prenom" type="text" maxlength="120" placeholder="Jean"></div>
+              <div class="field"><label for="reg-telephone">Téléphone *</label><input id="reg-telephone" name="telephone" type="tel" required minlength="6" maxlength="30" placeholder="+243 812 345 678"></div>
+              <div class="field"><label for="reg-vendeur">Vendeur</label><input id="reg-vendeur" name="vendeur" type="text" maxlength="120" placeholder="Nom du vendeur"></div>
+              <div class="field"><label for="reg-date">Date d'achat</label><input id="reg-date" name="dateAchat" type="date"></div>
+              <div class="field"><label for="reg-tickets">Nb tickets *</label><input id="reg-tickets" name="nombreTickets" type="number" min="1" max="20" value="1" required></div>
+            </div>
+            <div style="margin-top:1rem;">
+              <button class="primary" type="submit" id="registerBtn"><i class="ti ti-ticket"></i> Générer les tickets</button>
+            </div>
+          </form>
+          <div id="registerMessage" class="message" hidden></div>
+          <div id="ticketPreview" style="margin-top:1.5rem;display:flex;flex-wrap:wrap;gap:1rem;"></div>
+        </section>
+
+        <!-- Scanner un ticket -->
+        <section class="panel">
+          <h1>Scanner un ticket</h1>
+          <p style="color:var(--color-text-muted);">Scannés cette session : <span id="sessionCounter" class="badge">0</span></p>
+          <form id="codeForm" autocomplete="off" style="display:flex;gap:.5rem;align-items:center;">
+            <input id="codeInput" type="text" placeholder="Code ticket ou URL QR" required style="flex:1;">
+            <button class="primary" type="submit">Valider</button>
+          </form>
+          <div style="margin-top:1rem;">
+            <button id="startCam" type="button" class="secondary"><i class="ti ti-camera"></i> Scanner avec caméra</button>
+            <button id="stopCam" type="button" class="secondary" hidden>Arrêter caméra</button>
+          </div>
+          <div id="reader" style="margin-top:1rem;width:100%;max-width:400px;"></div>
+          <div id="scanResult" class="scan-result"></div>
+        </section>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           TAB 3 : Contrôleurs (admin only)
+      ══════════════════════════════════════════ -->
+      <div class="tab-panel" id="tab-controleurs">
+        <section class="panel">
+          <div class="actions" style="justify-content:space-between;margin-top:0;">
+            <h1 style="margin-bottom:0;">Comptes contrôleurs</h1>
+            <button type="button" id="openAddUserModal" class="primary"><i class="ti ti-user-plus"></i> Nouveau compte</button>
+          </div>
+          <div id="usersMessage" class="message" hidden></div>
+          <div class="table-wrap" style="margin-top:1.5rem;">
+            <table>
+              <thead><tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Créé le</th><th>Actions</th></tr></thead>
+              <tbody id="usersBody"><tr><td colspan="5" class="center">Chargement…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           TAB 4 : Historique / Audit (admin only)
+      ══════════════════════════════════════════ -->
+      <div class="tab-panel" id="tab-logs">
+        <section class="panel">
+          <div class="actions" style="justify-content:space-between;margin-top:0;">
+            <h1 style="margin-bottom:0;">Historique des actions</h1>
+            <button id="refreshLogsBtn" type="button"><i class="ti ti-refresh"></i> Actualiser</button>
+          </div>
+          <div class="table-wrap" style="margin-top:1.5rem;">
+            <table>
+              <thead><tr><th>Date / Heure</th><th>Utilisateur</th><th>Rôle</th><th>Action</th><th>Détails</th></tr></thead>
+              <tbody id="logsBody"><tr><td colspan="5" class="center">Chargement…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
     </main>
+
+    <!-- ══════════════════════════════════════════
+         Modal : Ajouter un utilisateur
+    ══════════════════════════════════════════ -->
+    <div id="addUserModal" class="modal-overlay" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <button class="modal-close" id="closeAddUserModal" aria-label="Fermer">&times;</button>
+        <h2>Nouveau compte</h2>
+        <form id="addUserForm" autocomplete="off">
+          <div class="field"><label for="user-nom">Nom complet *</label><input id="user-nom" name="nom" type="text" required minlength="2" maxlength="120" placeholder="Jean Dupont"></div>
+          <div class="field"><label for="user-email">Email *</label><input id="user-email" name="email" type="email" required placeholder="email@exemple.com"></div>
+          <div class="field"><label for="user-password">Mot de passe *</label><input id="user-password" name="password" type="password" required minlength="6" placeholder="6 caractères minimum"></div>
+          <div class="field">
+            <label for="user-role">Rôle *</label>
+            <select id="user-role" name="role" required>
+              <option value="controleur">Contrôleur</option>
+              <option value="admin">Administrateur</option>
+            </select>
+          </div>
+          <div id="addUserMessage" class="message" hidden></div>
+          <div class="actions" style="margin-top:1rem;">
+            <button class="primary" type="submit" id="addUserBtn">Créer le compte</button>
+            <button type="button" id="cancelAddUser">Annuler</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         Modal : Modifier un ticket
+    ══════════════════════════════════════════ -->
+    <div id="editModal" class="modal-overlay" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <button class="modal-close" id="closeEditModal" aria-label="Fermer">&times;</button>
+        <h2>Modifier le ticket</h2>
+        <form id="editForm" autocomplete="off">
+          <input type="hidden" id="edit-code">
+          <div class="form-grid">
+            <div class="field"><label for="edit-nom">Nom</label><input id="edit-nom" name="nom" type="text" required></div>
+            <div class="field"><label for="edit-prenom">Prénom</label><input id="edit-prenom" name="prenom" type="text"></div>
+            <div class="field"><label for="edit-telephone">Téléphone</label><input id="edit-telephone" name="telephone" type="tel" required></div>
+            <div class="field"><label for="edit-vendeur">Vendeur</label><input id="edit-vendeur" name="vendeur" type="text"></div>
+            <div class="field">
+              <label for="edit-statut">Statut</label>
+              <select id="edit-statut" name="statut">
+                <option value="active">Actif</option>
+                <option value="used">Utilisé</option>
+                <option value="cancelled">Annulé</option>
+              </select>
+            </div>
+          </div>
+          <div id="editMessage" class="message" hidden></div>
+          <div class="actions" style="margin-top:1rem;">
+            <button class="primary" type="submit" id="editBtn">Enregistrer</button>
+            <button type="button" id="cancelEdit">Annuler</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <script src="/assets/app.js"></script>
     <script>
-      /* ────────────────────────────────────────────
-         Auth Guard
-      ──────────────────────────────────────────── */
-      (function authGuard() {
-        const raw = sessionStorage.getItem('casinoSession');
+    /* =====================================================
+       AUTH GUARD
+    ===================================================== */
+    (function authGuard() {
+      const raw = sessionStorage.getItem('casinoSession');
+      if (!raw) { window.location.href = '/login.html'; return; }
+      try {
+        const sess = JSON.parse(raw);
+        if (!['admin','controleur'].includes(sess.role)) throw new Error();
+        window._session = sess;
+      } catch { sessionStorage.removeItem('casinoSession'); window.location.href = '/login.html'; return; }
 
-        if (!raw) {
-          window.location.href = '/login.html';
-          return;
-        }
+      window.ticketApi.getSession()
+        .then(() => {
+          // Afficher selon rôle
+          const role = window._session.role;
+          document.getElementById('roleLabel').textContent   = role === 'admin' ? 'Administration' : 'Contrôleur';
+          document.getElementById('userGreeting').textContent = window._session.nom || '';
 
-        try {
-          const session = JSON.parse(raw);
-          if (session.role !== 'admin') {
-            window.location.href = '/login.html';
-            return;
+          if (role !== 'admin') {
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
           }
-        } catch {
-          sessionStorage.removeItem('casinoSession');
-          window.location.href = '/login.html';
-          return;
-        }
-
-        // Vérification côté serveur
-        window.ticketApi.getSession()
-          .then(() => {
-            document.getElementById('mainContent').style.display = 'block';
-          })
-          .catch(() => {
-            sessionStorage.removeItem('casinoSession');
-            window.location.href = '/login.html';
-          });
-      })();
-
-      /* ────────────────────────────────────────────
-         Références DOM
-      ──────────────────────────────────────────── */
-      const body           = document.getElementById('ticketsBody');
-      const adminMessage   = document.getElementById('adminMessage');
-      const registerMsg    = document.getElementById('registerMessage');
-      const refreshButton  = document.getElementById('refreshButton');
-      const logoutButton   = document.getElementById('logoutButton');
-      const statsGrid      = document.getElementById('statsGrid');
-      const searchInput    = document.getElementById('searchInput');
-      const registerForm   = document.getElementById('registerForm');
-      const ticketPreview  = document.getElementById('ticketPreview');
-
-      /* ────────────────────────────────────────────
-         Déconnexion
-      ──────────────────────────────────────────── */
-      logoutButton.addEventListener('click', async () => {
-        await window.ticketApi.logout();
-        sessionStorage.removeItem('casinoSession');
-        window.location.href = '/login.html';
-      });
-
-      /* ────────────────────────────────────────────
-         Charger les statistiques
-      ──────────────────────────────────────────── */
-      async function loadStats() {
-        statsGrid.classList.add('stats-skeleton');
-        try {
-          const result = await window.ticketApi.getStats();
-          const s = result.stats;
-          document.getElementById('statTotal').textContent    = s.total;
-          document.getElementById('statActifs').textContent   = s.actifs;
-          document.getElementById('statUtilises').textContent = s.utilises;
-          document.getElementById('statAnnules').textContent  = s.annules;
-          document.getElementById('statJour').textContent     = s.ventesJour;
-          statsGrid.classList.remove('stats-skeleton');
-        } catch {
-          // Silencieux : les stats ne bloquent pas le reste du tableau de bord
-        }
-      }
-
-      /* ────────────────────────────────────────────
-         Charger la liste des tickets
-      ──────────────────────────────────────────── */
-      async function loadTickets() {
-        refreshButton.disabled = true;
-
-        try {
-          const result = await window.ticketApi.getTickets();
-
-          if (result.tickets.length === 0) {
-            body.innerHTML = '<tr><td colspan="7">Aucun ticket pour le moment.</td></tr>';
-            return;
-          }
-
-          body.innerHTML = result.tickets.map((ticket) => `
-            <tr data-code="${window.ticketUi.escapeHtml(ticket.ticketCode)}">
-              <td>${window.ticketUi.escapeHtml(ticket.nom)}</td>
-              <td>${window.ticketUi.escapeHtml(ticket.telephone)}</td>
-              <td><span class="ticket-code">${window.ticketUi.escapeHtml(ticket.ticketCode)}</span></td>
-              <td><span class="badge ${ticket.statut}">${ticket.statut}</span></td>
-              <td>${window.ticketUi.formatDate(ticket.dateAchat)}</td>
-              <td><a class="button" href="/ticket.html?code=${encodeURIComponent(ticket.ticketCode)}">Voir</a></td>
-              <td>
-                <button
-                  type="button"
-                  data-action="edit"
-                  data-ticket='${JSON.stringify(ticket).replace(/'/g, '&#039;')}'
-                >
-                  Modifier
-                </button>
-              </td>
-            </tr>
-          `).join('');
-        } catch (error) {
-          if (error.payload && error.payload.message === 'Acces admin refuse.') {
-            sessionStorage.removeItem('casinoSession');
-            window.location.href = '/login.html';
-            return;
-          }
-          window.ticketUi.showMessage(adminMessage, error.message, 'error');
-        } finally {
-          refreshButton.disabled = false;
-        }
-      }
-
-      /* ────────────────────────────────────────────
-         Recherche en temps réel
-      ──────────────────────────────────────────── */
-      searchInput.addEventListener('keyup', () => {
-        const query = searchInput.value.toLowerCase().trim();
-        const rows = body.querySelectorAll('tr[data-code]');
-
-        rows.forEach((row) => {
-          const nom  = row.children[0]?.textContent.toLowerCase() || '';
-          const code = row.children[2]?.textContent.toLowerCase() || '';
-          row.style.display = (nom.includes(query) || code.includes(query)) ? '' : 'none';
-        });
-      });
-
-      /* ────────────────────────────────────────────
-         Enregistrer un participant
-      ──────────────────────────────────────────── */
-      registerForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const btn = document.getElementById('registerBtn');
-        btn.disabled = true;
-        registerMsg.hidden = true;
-        ticketPreview.innerHTML = '';
-
-        const nom       = registerForm.nom.value.trim();
-        const telephone = registerForm.telephone.value.trim();
-
-        try {
-          const result = await window.ticketApi.register({ nom, telephone });
-          window.ticketUi.showMessage(registerMsg, result.message || 'Ticket généré avec succès !');
-          window.ticketUi.renderTicket(result.ticket, ticketPreview);
-          registerForm.reset();
-          await loadStats();
-          await loadTickets();
-        } catch (error) {
-          window.ticketUi.showMessage(registerMsg, error.message, 'error');
-        } finally {
-          btn.disabled = false;
-        }
-      });
-
-      /* ────────────────────────────────────────────
-         Actions sur les lignes (Modifier / Annuler)
-      ──────────────────────────────────────────── */
-      body.addEventListener('click', (event) => {
-        const editButton   = event.target.closest('[data-action="edit"]');
-        const cancelButton = event.target.closest('[data-action="cancel"]');
-
-        if (editButton) {
-          const ticket = JSON.parse(editButton.dataset.ticket);
-          showEditRow(ticket);
-        }
-
-        if (cancelButton) {
+          document.getElementById('mainContent').style.display = 'block';
+          loadStats();
           loadTickets();
-        }
+          if (role === 'admin') { loadUsers(); loadLogs(); }
+        })
+        .catch(() => { sessionStorage.removeItem('casinoSession'); window.location.href = '/login.html'; });
+    })();
+
+    /* =====================================================
+       TABS
+    ===================================================== */
+    document.querySelectorAll('.page-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
       });
+    });
 
-      /* ────────────────────────────────────────────
-         Soumission du formulaire d'édition inline
-      ──────────────────────────────────────────── */
-      body.addEventListener('submit', async (event) => {
-        if (!event.target.matches('[data-edit-form]')) {
-          return;
-        }
+    /* =====================================================
+       LOGOUT
+    ===================================================== */
+    document.getElementById('logoutButton').addEventListener('click', async () => {
+      await window.ticketApi.logout();
+      sessionStorage.removeItem('casinoSession');
+      window.location.href = '/login.html';
+    });
 
-        event.preventDefault();
-        const form = event.target;
-        const code = form.dataset.code;
-        const submitButton = form.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
+    /* =====================================================
+       STATS
+    ===================================================== */
+    async function loadStats() {
+      try {
+        const { stats: s } = await window.ticketApi.getStats();
+        document.getElementById('statTotal').textContent    = s.total;
+        document.getElementById('statActifs').textContent   = s.actifs;
+        document.getElementById('statUtilises').textContent = s.utilises;
+        document.getElementById('statAnnules').textContent  = s.annules;
+        document.getElementById('statJour').textContent     = s.ventesJour;
+        document.getElementById('statsGrid').classList.remove('stats-skeleton');
+      } catch (_) {}
+    }
 
-        try {
-          const data = Object.fromEntries(new FormData(form).entries());
-          const result = await window.ticketApi.updateTicket(code, data);
-          window.ticketUi.showMessage(adminMessage, result.message);
-          await loadTickets();
-        } catch (error) {
-          if (error.payload && error.payload.message === 'Acces admin refuse.') {
-            sessionStorage.removeItem('casinoSession');
-            window.location.href = '/login.html';
-            return;
-          }
-          window.ticketUi.showMessage(adminMessage, error.message, 'error');
-        } finally {
-          submitButton.disabled = false;
-        }
-      });
+    /* =====================================================
+       PARTICIPANTS
+    ===================================================== */
+    const body     = document.getElementById('ticketsBody');
+    const adminMsg = document.getElementById('adminMessage');
+    const isAdmin  = () => window._session?.role === 'admin';
 
-      /* ────────────────────────────────────────────
-         Ligne d'édition inline
-      ──────────────────────────────────────────── */
-      function showEditRow(ticket) {
-        const row = body.querySelector(`[data-code="${CSS.escape(ticket.ticketCode)}"]`);
-
-        if (!row) {
-          return;
-        }
-
-        row.innerHTML = `
-          <td colspan="7">
-            <form data-edit-form data-code="${window.ticketUi.escapeHtml(ticket.ticketCode)}">
-              <div class="edit-grid">
-                <div class="field">
-                  <label for="edit-nom">Nom</label>
-                  <input id="edit-nom" name="nom" value="${window.ticketUi.escapeHtml(ticket.nom)}" required minlength="2" maxlength="120">
-                </div>
-                <div class="field">
-                  <label for="edit-telephone">Téléphone</label>
-                  <input id="edit-telephone" name="telephone" value="${window.ticketUi.escapeHtml(ticket.telephone)}" required minlength="6" maxlength="30">
-                </div>
-                <div class="field">
-                  <label for="edit-statut">Statut</label>
-                  <select id="edit-statut" name="statut">
-                    <option value="active" ${ticket.statut === 'active' ? 'selected' : ''}>active</option>
-                    <option value="used" ${ticket.statut === 'used' ? 'selected' : ''}>used</option>
-                  </select>
-                </div>
-              </div>
-              <div class="actions">
-                <button class="primary" type="submit">Enregistrer</button>
-                <button type="button" data-action="cancel">Annuler</button>
-              </div>
-            </form>
-          </td>
-        `;
+    async function loadTickets() {
+      document.getElementById('refreshButton').disabled = true;
+      try {
+        const { tickets } = await window.ticketApi.getTickets();
+        if (!tickets.length) { body.innerHTML = '<tr><td colspan="9">Aucun ticket pour le moment.</td></tr>'; return; }
+        body.innerHTML = tickets.map(t => `
+          <tr data-code="${window.ticketUi.escapeHtml(t.ticketCode)}">
+            <td>${window.ticketUi.escapeHtml(t.nom)}</td>
+            <td>${window.ticketUi.escapeHtml(t.prenom || '-')}</td>
+            <td>${window.ticketUi.escapeHtml(t.telephone)}</td>
+            <td>${window.ticketUi.escapeHtml(t.vendeur || '-')}</td>
+            <td><span class="ticket-code">${window.ticketUi.escapeHtml(t.ticketCode)}</span></td>
+            <td><span class="badge ${t.statut}">${t.statut}</span></td>
+            <td>${window.ticketUi.formatDate(t.dateAchat)}</td>
+            <td><a class="button btn-sm" href="/ticket.html?code=${encodeURIComponent(t.ticketCode)}" target="_blank">Voir</a></td>
+            <td class="${isAdmin() ? '' : 'admin-only'}">
+              ${isAdmin() ? `
+                <button type="button" class="btn-sm" data-action="edit" data-ticket='${JSON.stringify(t).replace(/'/g,"&#039;")}' style="margin-right:.3rem;">Modifier</button>
+                <button type="button" class="btn-danger" data-action="delete" data-code="${window.ticketUi.escapeHtml(t.ticketCode)}">Supprimer</button>
+              ` : '-'}
+            </td>
+          </tr>`).join('');
+      } catch (err) {
+        window.ticketUi.showMessage(adminMsg, err.message, 'error');
+      } finally {
+        document.getElementById('refreshButton').disabled = false;
       }
+    }
 
-      /* ────────────────────────────────────────────
-         Actualiser
-      ──────────────────────────────────────────── */
-      refreshButton.addEventListener('click', () => {
-        loadStats();
-        loadTickets();
+    document.getElementById('refreshButton').addEventListener('click', () => { loadStats(); loadTickets(); });
+
+    // Recherche
+    document.getElementById('searchInput').addEventListener('keyup', () => {
+      const q = document.getElementById('searchInput').value.toLowerCase().trim();
+      body.querySelectorAll('tr[data-code]').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
       });
+    });
 
-      /* ────────────────────────────────────────────
-         Chargement initial
-      ──────────────────────────────────────────── */
-      loadStats();
-      loadTickets();
+    // Actions sur tableau
+    body.addEventListener('click', async e => {
+      const editBtn   = e.target.closest('[data-action="edit"]');
+      const deleteBtn = e.target.closest('[data-action="delete"]');
+      if (editBtn) {
+        const ticket = JSON.parse(editBtn.dataset.ticket);
+        openEditModal(ticket);
+      }
+      if (deleteBtn) {
+        const code = deleteBtn.dataset.code;
+        if (!confirm(`Supprimer définitivement le ticket ${code} ?`)) return;
+        try {
+          await window.ticketApi.deleteTicket(code);
+          window.ticketUi.showMessage(adminMsg, 'Ticket supprimé.', 'info');
+          loadTickets(); loadStats();
+        } catch (err) {
+          window.ticketUi.showMessage(adminMsg, err.message, 'error');
+        }
+      }
+    });
+
+    /* =====================================================
+       AJOUTER PARTICIPANT
+    ===================================================== */
+    // Date par défaut = aujourd'hui
+    const dateInput = document.getElementById('reg-date');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+    document.getElementById('registerForm')?.addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('registerBtn');
+      const msg = document.getElementById('registerMessage');
+      btn.disabled = true; msg.hidden = true;
+      document.getElementById('ticketPreview').innerHTML = '';
+      const fd = new FormData(e.target);
+      const data = Object.fromEntries(fd.entries());
+      try {
+        const result = await window.ticketApi.registerParticipant(data);
+        window.ticketUi.showMessage(msg, result.message, 'info');
+        const preview = document.getElementById('ticketPreview');
+        result.tickets.forEach(t => {
+          const div = document.createElement('div');
+          window.ticketUi.renderTicket(t, div);
+          preview.appendChild(div);
+        });
+        e.target.reset();
+        dateInput.value = new Date().toISOString().split('T')[0];
+        loadStats(); loadTickets();
+      } catch (err) {
+        window.ticketUi.showMessage(msg, err.message, 'error');
+      } finally { btn.disabled = false; }
+    });
+
+    /* =====================================================
+       SCANNER
+    ===================================================== */
+    let sessionValidated = 0;
+    const scanResult = document.getElementById('scanResult');
+
+    function showScan(type, message) {
+      scanResult.className = `scan-result ${type} show`;
+      scanResult.textContent = message;
+      setTimeout(() => { scanResult.classList.remove('show'); }, 6000);
+    }
+
+    async function validateCode(code) {
+      try {
+        const r = await window.ticketApi.scan(code);
+        sessionValidated++;
+        document.getElementById('sessionCounter').textContent = sessionValidated;
+        showScan('valid', `✅ VALIDE — ${r.ticket?.prenom || ''} ${r.ticket?.nom || ''}`);
+        loadTickets();
+      } catch (err) {
+        if (err.status === 409) showScan('invalid', `⚠️ DÉJÀ UTILISÉ — Billet déjà scanné`);
+        else if (err.status === 404) showScan('invalid', `❌ INVALIDE — Code inconnu`);
+        else showScan('invalid', err.message || 'Erreur de validation');
+      }
+    }
+
+    document.getElementById('codeForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const code = e.target.codeInput.value.trim();
+      if (code) await validateCode(code);
+      e.target.codeInput.value = '';
+    });
+
+    let html5QrCode = null;
+    document.getElementById('startCam').addEventListener('click', () => {
+      document.getElementById('startCam').hidden = true;
+      document.getElementById('stopCam').hidden  = false;
+      html5QrCode = new Html5Qrcode('reader');
+      html5QrCode.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, decoded => {
+        validateCode(decoded);
+      }).catch(err => { showScan('invalid', err.message || 'Impossible de démarrer la caméra'); stopCamera(); });
+    });
+    function stopCamera() {
+      if (html5QrCode) { html5QrCode.stop().catch(() => {}); html5QrCode.clear(); html5QrCode = null; }
+      document.getElementById('startCam').hidden = false;
+      document.getElementById('stopCam').hidden  = true;
+    }
+    document.getElementById('stopCam').addEventListener('click', stopCamera);
+
+    /* =====================================================
+       MODAL MODIFIER TICKET
+    ===================================================== */
+    function openEditModal(ticket) {
+      document.getElementById('edit-code').value      = ticket.ticketCode;
+      document.getElementById('edit-nom').value       = ticket.nom || '';
+      document.getElementById('edit-prenom').value    = ticket.prenom || '';
+      document.getElementById('edit-telephone').value = ticket.telephone || '';
+      document.getElementById('edit-vendeur').value   = ticket.vendeur || '';
+      document.getElementById('edit-statut').value    = ticket.statut || 'active';
+      document.getElementById('editMessage').hidden   = true;
+      document.getElementById('editModal').classList.add('open');
+    }
+    document.getElementById('closeEditModal').addEventListener('click', () => document.getElementById('editModal').classList.remove('open'));
+    document.getElementById('cancelEdit').addEventListener('click',     () => document.getElementById('editModal').classList.remove('open'));
+
+    document.getElementById('editForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const code = document.getElementById('edit-code').value;
+      const btn  = document.getElementById('editBtn');
+      const msg  = document.getElementById('editMessage');
+      btn.disabled = true;
+      const fd   = new FormData(e.target);
+      const data = Object.fromEntries(fd.entries());
+      try {
+        await window.ticketApi.updateTicket(code, data);
+        document.getElementById('editModal').classList.remove('open');
+        window.ticketUi.showMessage(adminMsg, 'Ticket modifié avec succès.', 'info');
+        loadTickets();
+      } catch (err) {
+        window.ticketUi.showMessage(msg, err.message, 'error');
+      } finally { btn.disabled = false; }
+    });
+
+    /* =====================================================
+       UTILISATEURS / CONTROLEURS
+    ===================================================== */
+    async function loadUsers() {
+      const tb  = document.getElementById('usersBody');
+      const msg = document.getElementById('usersMessage');
+      try {
+        const { users } = await window.ticketApi.listUsers();
+        if (!users.length) { tb.innerHTML = '<tr><td colspan="5" class="center">Aucun compte pour le moment.</td></tr>'; return; }
+        tb.innerHTML = users.map(u => `
+          <tr>
+            <td>${window.ticketUi.escapeHtml(u.nom)}</td>
+            <td>${window.ticketUi.escapeHtml(u.email)}</td>
+            <td><span class="badge ${u.role === 'admin' ? 'active' : ''}">${u.role}</span></td>
+            <td>${window.ticketUi.formatDate(u.created_at)}</td>
+            <td><button type="button" class="btn-danger" data-action="del-user" data-id="${u.id}">Supprimer</button></td>
+          </tr>`).join('');
+      } catch (err) { window.ticketUi.showMessage(msg, err.message, 'error'); }
+    }
+
+    document.getElementById('usersBody')?.addEventListener('click', async e => {
+      const delBtn = e.target.closest('[data-action="del-user"]');
+      if (!delBtn) return;
+      if (!confirm('Supprimer ce compte ?')) return;
+      try {
+        await window.ticketApi.deleteUser(delBtn.dataset.id);
+        loadUsers();
+      } catch (err) {
+        window.ticketUi.showMessage(document.getElementById('usersMessage'), err.message, 'error');
+      }
+    });
+
+    // Modal ajouter utilisateur
+    document.getElementById('openAddUserModal').addEventListener('click',  () => document.getElementById('addUserModal').classList.add('open'));
+    document.getElementById('closeAddUserModal').addEventListener('click', () => document.getElementById('addUserModal').classList.remove('open'));
+    document.getElementById('cancelAddUser').addEventListener('click',     () => document.getElementById('addUserModal').classList.remove('open'));
+
+    document.getElementById('addUserForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('addUserBtn');
+      const msg = document.getElementById('addUserMessage');
+      btn.disabled = true; msg.hidden = true;
+      const fd   = new FormData(e.target);
+      const data = Object.fromEntries(fd.entries());
+      try {
+        await window.ticketApi.createUser(data);
+        document.getElementById('addUserModal').classList.remove('open');
+        e.target.reset();
+        loadUsers();
+      } catch (err) {
+        window.ticketUi.showMessage(msg, err.message, 'error');
+      } finally { btn.disabled = false; }
+    });
+
+    /* =====================================================
+       LOGS D'AUDIT
+    ===================================================== */
+    async function loadLogs() {
+      const tb = document.getElementById('logsBody');
+      try {
+        const { logs } = await window.ticketApi.getAuditLogs();
+        if (!logs.length) { tb.innerHTML = '<tr><td colspan="5" class="center">Aucune action enregistrée.</td></tr>'; return; }
+        tb.innerHTML = logs.map(l => `
+          <tr>
+            <td>${window.ticketUi.formatDate(l.created_at)}</td>
+            <td class="log-user">${window.ticketUi.escapeHtml(l.utilisateur)}</td>
+            <td><span class="badge">${window.ticketUi.escapeHtml(l.role)}</span></td>
+            <td class="log-action">${window.ticketUi.escapeHtml(l.action)}</td>
+            <td>${window.ticketUi.escapeHtml(l.details || '-')}</td>
+          </tr>`).join('');
+      } catch (_) {}
+    }
+    document.getElementById('refreshLogsBtn')?.addEventListener('click', loadLogs);
     </script>
   </body>
 </html>

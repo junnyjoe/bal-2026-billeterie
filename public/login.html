@@ -7,437 +7,94 @@
     <link rel="stylesheet" href="/assets/styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
-      /* ---------- Login panel centering ---------- */
-      .login-shell {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        flex: 1;
-        padding: 2rem 1rem;
-      }
-
-      .login-panel {
-        width: 100%;
-        max-width: 450px;
-      }
-
-      /* ---------- Logo area ---------- */
-      .logo-area {
-        text-align: center;
-        margin-bottom: 2rem;
-      }
-
-      .logo-area h1 {
-        font-size: 2.2rem;
-        margin-bottom: 0.3rem;
-        text-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
-      }
-
-      .logo-area .subtitle {
-        font-size: 0.85rem;
-        color: var(--color-text-muted);
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        font-family: var(--font-body);
-      }
-
-      /* ---------- Tabs ---------- */
-      .auth-tabs {
-        display: flex;
-        border-bottom: 1px solid var(--color-border);
-        margin-bottom: 1.8rem;
-      }
-
-      .auth-tab {
-        flex: 1;
-        padding: 0.9rem 0;
-        text-align: center;
-        font-family: var(--font-body);
-        font-weight: 600;
-        font-size: 0.95rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: var(--color-text-muted);
-        cursor: pointer;
-        border: none;
-        background: none;
-        border-bottom: 3px solid transparent;
-        transition: color 0.3s, border-color 0.3s;
-      }
-
-      .auth-tab:hover {
-        color: var(--color-text);
-      }
-
-      .auth-tab.active {
-        color: var(--color-gold);
-        border-bottom-color: var(--color-gold);
-      }
-
-      /* ---------- Tab content ---------- */
-      .tab-content {
-        display: none;
-      }
-
-      .tab-content.active {
-        display: block;
-      }
-
-      /* ---------- Password wrapper ---------- */
-      .password-wrap {
-        position: relative;
-      }
-
-      .password-wrap input {
-        padding-right: 3rem;
-      }
-
-      .toggle-password {
-        position: absolute;
-        right: 0.7rem;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        color: var(--color-text-muted);
-        cursor: pointer;
-        padding: 0.3rem;
-        font-size: 1.2rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: color 0.2s;
-      }
-
-      .toggle-password:hover {
-        color: var(--color-gold);
-      }
-
-      /* ---------- Submit buttons full width ---------- */
-      .auth-submit {
-        width: 100%;
-        margin-top: 0.5rem;
-      }
-
-      /* ---------- Message overrides ---------- */
-      .message.success {
-        background-color: rgba(46, 204, 113, 0.1);
-        border-left-color: var(--color-success);
-      }
+      .login-shell { display:flex; justify-content:center; align-items:flex-start; flex:1; padding:2rem 1rem; }
+      .login-panel { width:100%; max-width:420px; }
+      .logo-area { text-align:center; margin-bottom:2rem; }
+      .logo-area h1 { font-size:2.2rem; margin-bottom:0.3rem; text-shadow:0 4px 20px rgba(212,175,55,.4); }
+      .logo-area .subtitle { font-size:.85rem; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:3px; font-family:var(--font-body); }
+      .password-wrap { position:relative; }
+      .password-wrap input { padding-right:3rem; }
+      .toggle-password { position:absolute; right:.7rem; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--color-text-muted); cursor:pointer; padding:.3rem; font-size:1.2rem; display:flex; align-items:center; transition:color .2s; }
+      .toggle-password:hover { color:var(--color-gold); }
+      .auth-submit { width:100%; margin-top:.5rem; }
     </style>
   </head>
   <body>
-    <!-- ===== Header ===== -->
     <header class="topbar">
       <div class="brand">
         <strong>Casino Masqué</strong>
         <span>Bal 2026 · 18 Juillet</span>
       </div>
-      <nav class="nav" aria-label="Navigation principale">
-        <span style="color:var(--color-text-muted);font-size:0.9rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;cursor:default;opacity:0.5;">Connexion</span>
-      </nav>
     </header>
 
-    <!-- ===== Main ===== -->
     <main class="login-shell">
       <section class="panel login-panel">
-
-        <!-- Logo -->
         <div class="logo-area">
           <h1>Casino Masqué</h1>
           <div class="subtitle">Bal 2026 · 18 Juillet</div>
         </div>
 
-        <!-- Tabs -->
-        <div class="auth-tabs" role="tablist">
-          <button class="auth-tab active" role="tab" aria-selected="true" aria-controls="tab-login" id="btn-tab-login" type="button">Connexion</button>
-          <button class="auth-tab" role="tab" aria-selected="false" aria-controls="tab-register" id="btn-tab-register" type="button">Créer un compte</button>
-        </div>
-
-        <!-- ====== Tab 1 : Connexion ====== -->
-        <div class="tab-content active" id="tab-login" role="tabpanel" aria-labelledby="btn-tab-login">
-          <form id="loginForm" novalidate>
-            <div class="field">
-              <label for="login-email">Email</label>
-              <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="vous@exemple.com">
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="login-email">Email ou identifiant</label>
+            <input id="login-email" name="email" type="text" autocomplete="username" required placeholder="admin ou email@exemple.com">
+          </div>
+          <div class="field">
+            <label for="login-password">Mot de passe</label>
+            <div class="password-wrap">
+              <input id="login-password" name="password" type="password" autocomplete="current-password" required minlength="6" placeholder="••••••••">
+              <button type="button" class="toggle-password" aria-label="Afficher le mot de passe" data-target="login-password">
+                <i class="ti ti-eye"></i>
+              </button>
             </div>
-
-            <div class="field">
-              <label for="login-password">Mot de passe</label>
-              <div class="password-wrap">
-                <input id="login-password" name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="••••••••">
-                <button type="button" class="toggle-password" aria-label="Afficher le mot de passe" data-target="login-password">
-                  <i class="ti ti-eye"></i>
-                </button>
-              </div>
-            </div>
-
-            <button class="primary auth-submit" type="submit">Se connecter</button>
-            <div id="loginMessage" class="message" hidden></div>
-          </form>
-        </div>
-
-        <!-- ====== Tab 2 : Créer un compte ====== -->
-        <div class="tab-content" id="tab-register" role="tabpanel" aria-labelledby="btn-tab-register">
-          <form id="registerForm" novalidate>
-            <div class="field">
-              <label for="reg-nom">Nom complet</label>
-              <input id="reg-nom" name="nom" type="text" required minlength="2" maxlength="120" autocomplete="name" placeholder="Jean Dupont">
-            </div>
-
-            <div class="field">
-              <label for="reg-telephone">Téléphone</label>
-              <input id="reg-telephone" name="telephone" type="tel" required minlength="6" maxlength="30" autocomplete="tel" placeholder="+33 6 12 34 56 78">
-            </div>
-
-            <div class="field">
-              <label for="reg-email">Email</label>
-              <input id="reg-email" name="email" type="email" required autocomplete="email" placeholder="vous@exemple.com">
-            </div>
-
-            <div class="field">
-              <label for="reg-password">Mot de passe</label>
-              <div class="password-wrap">
-                <input id="reg-password" name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="8 caractères minimum">
-                <button type="button" class="toggle-password" aria-label="Afficher le mot de passe" data-target="reg-password">
-                  <i class="ti ti-eye"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="field">
-              <label for="reg-password-confirm">Confirmer le mot de passe</label>
-              <div class="password-wrap">
-                <input id="reg-password-confirm" name="passwordConfirm" type="password" required autocomplete="new-password" placeholder="Retapez votre mot de passe">
-                <button type="button" class="toggle-password" aria-label="Afficher le mot de passe" data-target="reg-password-confirm">
-                  <i class="ti ti-eye"></i>
-                </button>
-              </div>
-            </div>
-
-            <button class="primary auth-submit" type="submit">Créer mon compte</button>
-            <div id="registerMessage" class="message" hidden></div>
-          </form>
-        </div>
-
+          </div>
+          <button class="primary auth-submit" type="submit">Se connecter</button>
+          <div id="loginMessage" class="message" hidden></div>
+        </form>
       </section>
     </main>
 
-    <!-- ===== Scripts ===== -->
     <script src="/assets/app.js"></script>
     <script>
       (function () {
         'use strict';
-
-        /* ---------- Auto-redirect if already logged in ---------- */
         const session = sessionStorage.getItem('casinoSession');
         if (session) {
           try {
             const parsed = JSON.parse(session);
-            if (parsed && parsed.role) {
-              redirectByRole(parsed.role);
-            }
-          } catch (_) { /* ignore bad data */ }
+            if (parsed && parsed.role === 'admin')      { window.location.href = '/admin.html'; return; }
+            if (parsed && parsed.role === 'controleur') { window.location.href = '/scan.html';  return; }
+          } catch (_) {}
         }
 
-        /* ---------- DOM references ---------- */
-        const tabButtons   = document.querySelectorAll('.auth-tab');
-        const tabPanels    = document.querySelectorAll('.tab-content');
-        const loginForm    = document.getElementById('loginForm');
-        const registerForm = document.getElementById('registerForm');
-        const loginMsg     = document.getElementById('loginMessage');
-        const registerMsg  = document.getElementById('registerMessage');
-
-        /* ---------- Tab switching ---------- */
-        tabButtons.forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            tabButtons.forEach(function (b) {
-              b.classList.remove('active');
-              b.setAttribute('aria-selected', 'false');
-            });
-            tabPanels.forEach(function (p) {
-              p.classList.remove('active');
-            });
-
-            btn.classList.add('active');
-            btn.setAttribute('aria-selected', 'true');
-            var target = document.getElementById(btn.getAttribute('aria-controls'));
-            if (target) target.classList.add('active');
-          });
+        document.querySelector('.toggle-password').addEventListener('click', function () {
+          const input = document.getElementById(this.dataset.target);
+          const icon  = this.querySelector('i');
+          if (input.type === 'password') { input.type = 'text'; icon.className = 'ti ti-eye-off'; }
+          else                           { input.type = 'password'; icon.className = 'ti ti-eye'; }
         });
 
-        function switchToLogin() {
-          document.getElementById('btn-tab-login').click();
-        }
-
-        /* ---------- Password toggle ---------- */
-        document.querySelectorAll('.toggle-password').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            var targetId = btn.getAttribute('data-target');
-            var input = document.getElementById(targetId);
-            if (!input) return;
-
-            var icon = btn.querySelector('i');
-            if (input.type === 'password') {
-              input.type = 'text';
-              icon.className = 'ti ti-eye-off';
-              btn.setAttribute('aria-label', 'Masquer le mot de passe');
-            } else {
-              input.type = 'password';
-              icon.className = 'ti ti-eye';
-              btn.setAttribute('aria-label', 'Afficher le mot de passe');
-            }
-          });
-        });
-
-        /* ---------- Helpers ---------- */
-        function showMsg(el, text, type) {
-          el.textContent = text;
-          el.className = 'message' + (type === 'error' ? ' error' : ' success');
-          el.hidden = false;
-        }
-
-        function hideMsg(el) {
-          el.hidden = true;
-        }
-
-        function isValidEmail(email) {
-          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        }
-
-        function redirectByRole(role) {
-          switch (role) {
-            case 'admin':
-              window.location.href = '/admin.html';
-              break;
-            case 'controleur':
-              window.location.href = '/scan.html';
-              break;
-            default:
-              break;
-          }
-        }
-
-        /* ---------- Login form ---------- */
-        loginForm.addEventListener('submit', async function (e) {
+        const loginMsg = document.getElementById('loginMessage');
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
           e.preventDefault();
-          hideMsg(loginMsg);
-
-          var email    = loginForm.querySelector('[name="email"]').value.trim();
-          var password = loginForm.querySelector('[name="password"]').value;
-
-          if (!email || !password) {
-            showMsg(loginMsg, 'Veuillez remplir tous les champs.', 'error');
-            return;
-          }
-
-          var submitBtn = loginForm.querySelector('button[type="submit"]');
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Connexion…';
-
+          loginMsg.hidden = true;
+          const email    = this.querySelector('[name="email"]').value.trim();
+          const password = this.querySelector('[name="password"]').value;
+          const btn      = this.querySelector('button[type="submit"]');
+          btn.disabled   = true; btn.textContent = 'Connexion…';
           try {
-            var result = await fetch('/api/auth/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'same-origin',
-              body: JSON.stringify({ email: email, password: password })
-            });
-
-            var data = await result.json();
-
-            if (!result.ok) {
-              throw new Error(data.message || 'Identifiants invalides.');
-            }
-
-            var user = data.user || {};
-            var role  = user.role || 'participant';
-            var nom   = user.nom  || '';
-            var token = data.token || '';
-
-            sessionStorage.setItem('casinoSession', JSON.stringify({
-              role: role,
-              nom: nom,
-              token: token
-            }));
-
-            if (role === 'admin') {
-              window.location.href = '/admin.html';
-            } else if (role === 'controleur') {
-              window.location.href = '/scan.html';
-            } else {
-              showMsg(loginMsg, 'Votre compte est actif, votre billet sera généré par l\u2019administration.', 'success');
-            }
+            const result = await window.ticketApi.login({ email, password });
+            const role   = result.user?.role || '';
+            sessionStorage.setItem('casinoSession', JSON.stringify({ role, nom: result.user?.nom || '', token: result.token || '' }));
+            if (role === 'admin')      window.location.href = '/admin.html';
+            else if (role === 'controleur') window.location.href = '/scan.html';
+            else { loginMsg.textContent = 'Rôle non reconnu.'; loginMsg.className = 'message error'; loginMsg.hidden = false; }
           } catch (err) {
-            showMsg(loginMsg, err.message, 'error');
+            loginMsg.textContent = err.message || 'Identifiants invalides.';
+            loginMsg.className   = 'message error';
+            loginMsg.hidden      = false;
           } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Se connecter';
-          }
-        });
-
-        /* ---------- Register form ---------- */
-        registerForm.addEventListener('submit', async function (e) {
-          e.preventDefault();
-          hideMsg(registerMsg);
-
-          var nom             = registerForm.querySelector('[name="nom"]').value.trim();
-          var telephone       = registerForm.querySelector('[name="telephone"]').value.trim();
-          var email           = registerForm.querySelector('[name="email"]').value.trim();
-          var password        = registerForm.querySelector('[name="password"]').value;
-          var passwordConfirm = registerForm.querySelector('[name="passwordConfirm"]').value;
-
-          /* -- Inline validation -- */
-          if (!nom || !telephone || !email || !password || !passwordConfirm) {
-            showMsg(registerMsg, 'Veuillez remplir tous les champs.', 'error');
-            return;
-          }
-
-          if (!isValidEmail(email)) {
-            showMsg(registerMsg, 'Veuillez entrer une adresse email valide.', 'error');
-            return;
-          }
-
-          if (password.length < 8) {
-            showMsg(registerMsg, 'Le mot de passe doit contenir au moins 8 caractères.', 'error');
-            return;
-          }
-
-          if (password !== passwordConfirm) {
-            showMsg(registerMsg, 'Les mots de passe ne correspondent pas.', 'error');
-            return;
-          }
-
-          var submitBtn = registerForm.querySelector('button[type="submit"]');
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Création…';
-
-          try {
-            var result = await fetch('/api/auth/register', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                nom: nom,
-                telephone: telephone,
-                email: email,
-                password: password
-              })
-            });
-
-            var data = await result.json();
-
-            if (!result.ok) {
-              throw new Error(data.message || 'Erreur lors de la création du compte.');
-            }
-
-            /* Success → switch to login tab with green message */
-            registerForm.reset();
-            switchToLogin();
-            showMsg(loginMsg, 'Compte créé avec succès ! Connectez-vous.', 'success');
-          } catch (err) {
-            showMsg(registerMsg, err.message, 'error');
-          } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Créer mon compte';
+            btn.disabled = false; btn.textContent = 'Se connecter';
           }
         });
       })();

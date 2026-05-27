@@ -3,117 +3,123 @@ const generateTicketCode = require('../utils/generateTicketCode');
 const { generateQrCode } = require('../utils/qrGenerator');
 
 function normalizeTicket(row) {
-  if (!row) {
-    return null;
-  }
-
+  if (!row) return null;
   return {
-    id: row.id,
-    nom: row.nom,
-    telephone: row.telephone,
-    email: row.email,
+    id:         row.id,
+    nom:        row.nom,
+    prenom:     row.prenom || '',
+    telephone:  row.telephone,
+    vendeur:    row.vendeur || '',
     ticketCode: row.ticket_code,
-    qrCode: row.qr_code,
-    statut: row.statut,
-    dateAchat: row.date_achat,
-    dateScan: row.date_scan
+    qrCode:     row.qr_code,
+    statut:     row.statut,
+    dateAchat:  row.date_achat,
+    dateScan:   row.date_scan
   };
 }
 
+/**
+ * Crée N tickets pour un même participant (un QR code par ticket physique).
+ * @param {object} payload — { nom, prenom, telephone, vendeur, dateAchat, nombreTickets }
+ * @param {object} options — { baseUrl }
+ * @returns {Array} tableau de tickets normalisés
+ */
 async function registerParticipant(payload, options = {}) {
-  const participantData = sanitizeParticipant(payload);
-  let participant = null;
-  let attempts = 0;
+  const data = sanitizeParticipant(payload);
+  const nombreTickets = Math.max(1, parseInt(payload.nombreTickets) || 1);
+  const tickets = [];
 
-  while (!participant && attempts < 5) {
-    attempts += 1;
-    const ticketCode = generateTicketCode();
-    const ticketUrl = `${options.baseUrl}/ticket.html?code=${encodeURIComponent(ticketCode)}`;
-    const qrCode = await generateQrCode(ticketUrl);
+  for (let i = 0; i < nombreTickets; i++) {
+    let participant = null;
+    let attempts = 0;
 
-    try {
-      participant = await userRepository.createParticipant({
-        ...participantData,
-        ticketCode,
-        qrCode
-      });
-    } catch (error) {
-      if (error.code !== 'ER_DUP_ENTRY' || attempts >= 5) {
-        throw error;
+    while (!participant && attempts < 5) {
+      attempts += 1;
+      const ticketCode = generateTicketCode();
+      const ticketUrl  = `${options.baseUrl}/ticket.html?code=${encodeURIComponent(ticketCode)}`;
+      const qrCode     = await generateQrCode(ticketUrl);
+
+      try {
+        participant = await userRepository.createParticipant({
+          ...data,
+          ticketCode,
+          qrCode
+        });
+      } catch (error) {
+        // 23505 = unique violation (code déjà pris), on réessaie
+        if (error.code !== '23505' || attempts >= 5) throw error;
       }
     }
+
+    tickets.push(normalizeTicket(participant));
   }
 
-  return normalizeTicket(participant);
+  return tickets;
 }
 
 async function listTickets() {
   const tickets = await userRepository.listParticipants();
-
   return tickets.map(normalizeTicket);
 }
 
 async function getTicketByCode(code) {
   const ticket = await userRepository.findByTicketCode(code);
-
   return normalizeTicket(ticket);
 }
 
 async function updateTicket(code, payload) {
-  const existingTicket = await userRepository.findByTicketCode(code);
+  const existing = await userRepository.findByTicketCode(code);
+  if (!existing) return null;
 
-  if (!existingTicket) {
-    return null;
-  }
-
-  const participantData = sanitizeParticipant(payload);
-  const updatedTicket = await userRepository.updateParticipant(code, {
-    ...participantData,
+  const data = sanitizeParticipant(payload);
+  const updated = await userRepository.updateParticipant(code, {
+    ...data,
     statut: payload.statut
   });
+  return normalizeTicket(updated);
+}
 
-  return normalizeTicket(updatedTicket);
+async function deleteTicket(code) {
+  const existing = await userRepository.findByTicketCode(code);
+  if (!existing) return false;
+  await userRepository.deleteParticipant(code);
+  return true;
 }
 
 async function validateTicketEntry(value) {
-  const code = extractTicketCode(value);
+  const code   = extractTicketCode(value);
   const ticket = await userRepository.findByTicketCode(code);
 
-  if (!ticket) {
-    return { status: 'not_found', ticket: null };
-  }
-
-  if (ticket.statut === 'used') {
-    return { status: 'already_used', ticket: normalizeTicket(ticket) };
-  }
+  if (!ticket) return { status: 'not_found', ticket: null };
+  if (ticket.statut === 'used') return { status: 'already_used', ticket: normalizeTicket(ticket) };
 
   await userRepository.markTicketAsUsed(code);
-  const updatedTicket = await userRepository.findByTicketCode(code);
-
-  return { status: 'validated', ticket: normalizeTicket(updatedTicket) };
-}
-
-function sanitizeParticipant(payload) {
-  return {
-    nom: payload.nom?.trim() || '',
-    telephone: payload.telephone?.trim() || '',
-    email: payload.email?.trim() || null
-  };
-}
-
-function extractTicketCode(value) {
-  const rawValue = String(value || '').trim();
-
-  try {
-    const parsedUrl = new URL(rawValue);
-    return parsedUrl.searchParams.get('code') || rawValue;
-  } catch {
-    return rawValue;
-  }
+  const updated = await userRepository.findByTicketCode(code);
+  return { status: 'validated', ticket: normalizeTicket(updated) };
 }
 
 async function getStats() {
   return userRepository.getStats();
+}
+
+function sanitizeParticipant(payload) {
+  return {
+    nom:       (payload.nom       || '').trim(),
+    prenom:    (payload.prenom    || '').trim(),
+    telephone: (payload.telephone || '').trim(),
+    vendeur:   (payload.vendeur   || '').trim(),
+    dateAchat: payload.dateAchat || new Date().toISOString()
+  };
+}
+
+function extractTicketCode(value) {
+  const raw = String(value || '').trim();
+  try {
+    const url = new URL(raw);
+    return url.searchParams.get('code') || raw;
+  } catch {
+    return raw;
+  }
 }
 
 module.exports = {
@@ -121,6 +127,7 @@ module.exports = {
   listTickets,
   getTicketByCode,
   updateTicket,
+  deleteTicket,
   validateTicketEntry,
   getStats
 };
