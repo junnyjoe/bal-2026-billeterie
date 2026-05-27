@@ -445,12 +445,242 @@ tr:hover td {
   margin: 0 auto 2.5rem;
 }
 
-@media (max-width: 768px) {
+/* ═══════════════════════════════════════════════
+   RESPONSIVE — Mobile First
+   ═══════════════════════════════════════════════ */
+
+/* ── Extra small screens (≤ 480px) — phones ── */
+@media (max-width: 480px) {
+  .topbar {
+    padding: 0.7rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .brand strong { font-size: 1.1rem; }
+  .brand span   { font-size: 0.65rem; letter-spacing: 1px; }
+
+  .nav {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .nav a, .nav button, .nav span {
+    font-size: 0.75rem !important;
+    padding: 0.5rem 0.8rem;
+    letter-spacing: 0;
+  }
+
+  .shell {
+    margin: 1rem auto;
+    padding: 0 0.6rem;
+  }
+
+  .panel {
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+  }
+  .panel h1 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Stats */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  .stat-card {
+    padding: 0.8rem 0.5rem;
+  }
+  .stat-card__icon  { font-size: 1.3rem; margin-bottom: 0.3rem; }
+  .stat-card__value { font-size: 1.3rem; }
+  .stat-card__label { font-size: 0.65rem; letter-spacing: 0.5px; }
+
+  /* Tabs */
+  .page-tabs {
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+  .page-tabs::-webkit-scrollbar { display: none; }
+  .page-tab {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Tables */
+  th, td {
+    padding: 0.5rem 0.4rem;
+    font-size: 0.75rem;
+  }
+  th { font-size: 0.7rem; }
+  .ticket-code { font-size: 0.75rem; padding: 0.3rem 0.5rem; letter-spacing: 1px; }
+  .badge { font-size: 0.65rem; padding: 0.2rem 0.4rem; }
+  .btn-sm, .btn-danger { font-size: 0.7rem; padding: 0.25rem 0.5rem; }
+
+  /* Ticket VIP */
   .ticket-body {
     flex-direction: column;
     text-align: center;
+    padding: 1rem;
+    gap: 1rem;
   }
-  .hero h1 {
-    font-size: 2.5rem;
+  .ticket-body h1 { font-size: 1.3rem; }
+  .ticket-header { padding: 1rem; }
+  .ticket-header h2 { font-size: 1.1rem; }
+  .qr img { width: 100px; height: 100px; }
+
+  /* Forms */
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.6rem;
+  }
+  input, select {
+    padding: 0.65rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  button, .button {
+    padding: 0.65rem 1rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+  }
+  .actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Hero */
+  .hero { padding: 2rem 1rem; min-height: 50vh; }
+  .hero h1 { font-size: 1.8rem; }
+  .hero p  { font-size: 0.95rem; margin-bottom: 1.5rem; }
+
+  /* Login */
+  .login-panel { padding: 0 0.5rem; }
+  .logo-area h1 { font-size: 1.6rem !important; }
+
+  /* Modal */
+  .modal-box {
+    padding: 1.2rem;
+    border-radius: 12px;
+    max-height: 85vh;
+  }
+  .modal-box h2 { font-size: 1.2rem; }
+}
+
+/* ── Small screens (481px – 768px) — large phones / small tablets ── */
+@media (min-width: 481px) and (max-width: 768px) {
+  .topbar {
+    padding: 0.8rem 1.2rem;
+  }
+  .brand strong { font-size: 1.25rem; }
+
+  .nav {
+    gap: 0.8rem;
+  }
+  .nav a, .nav button, .nav span {
+    font-size: 0.8rem !important;
+  }
+
+  .shell {
+    margin: 1.2rem auto;
+    padding: 0 0.8rem;
+  }
+
+  .panel {
+    padding: 1.3rem;
+  }
+  .panel h1 {
+    font-size: 1.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.7rem;
+  }
+  .stat-card { padding: 1rem; }
+  .stat-card__value { font-size: 1.5rem; }
+
+  .page-tab {
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  th, td { padding: 0.7rem 0.5rem; font-size: 0.82rem; }
+
+  .ticket-body {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+  .ticket-body h1 { font-size: 1.6rem; }
+
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .hero h1 { font-size: 2.5rem; }
+  .hero p  { font-size: 1rem; }
+
+  .modal-box { padding: 1.5rem; }
+}
+
+/* ── Medium screens (769px – 1024px) — tablets / small laptops ── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .shell {
+    max-width: 900px;
+    padding: 0 1.2rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .ticket-body {
+    flex-direction: row;
+    padding: 1.5rem;
+  }
+  .ticket-body h1 { font-size: 1.8rem; }
+}
+
+/* ── Large screens (≥ 1025px) — desktops ── */
+@media (min-width: 1025px) {
+  .shell {
+    max-width: 1100px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(5, 1fr);
   }
 }
+
+/* ── Touch device optimizations ── */
+@media (hover: none) and (pointer: coarse) {
+  button, .button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .stat-card:hover {
+    transform: none;
+  }
+  .page-tab {
+    min-height: 44px;
+  }
+  input, select {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+}
+
+/* ── Print styles ── */
+@media print {
+  .topbar, .nav, .page-tabs, .actions, button, .stats-grid { display: none !important; }
+  body { background: white; color: black; }
+  .panel { box-shadow: none; border: 1px solid #ccc; }
+  .ticket { box-shadow: none; border: 2px solid #d4af37; }
+}
+
