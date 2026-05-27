@@ -2,7 +2,7 @@
   "name": "bal-ticket-manager",
   "version": "1.0.0",
   "description": "Application web de gestion de tickets avec QR code pour un evenement.",
-  "main": "backend/server.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
